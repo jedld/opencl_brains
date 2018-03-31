@@ -1,5 +1,6 @@
 require "bundler/setup"
 require "cl/brains"
+require 'awesome_print'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

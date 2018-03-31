@@ -39,7 +39,8 @@ RSpec.describe Cl::Brains do
     it "Matrix multiplication" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       puts Benchmark.measure {
-        expect(compute.matrix_mul_int(matrix_a, matrix_b)).to eq([
+        
+        expect(compute.prepare(matrix_a, matrix_b).mul_int).to eq([
           [1,	18,	11],
           [2,	-10, -2],
           [-7,	6,	6]
@@ -58,12 +59,14 @@ RSpec.describe Cl::Brains do
       ma = generate_matrix(512)
       mb = generate_matrix(512)
       expected = nil
+      ap "Using CPU"
       puts Benchmark.measure {
         expected = (Matrix[*ma] *  Matrix[*mb]).to_a
       }
+      ap  "Using GPU"
       compute = Cl::Brains::CLMatrixMath.new(512)
       puts Benchmark.measure {
-        expect(compute.matrix_mul_int(ma, mb)).to eq(expected)
+        expect(compute.prepare(ma, mb).mul_int).to eq(expected)
       }
     end
   end
