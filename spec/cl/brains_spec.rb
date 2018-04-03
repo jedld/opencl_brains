@@ -18,6 +18,23 @@ RSpec.describe Cl::Brains do
     end
     arr
   end
+  
+  context "sigmoid operations" do
+    let(:matrix_a) {
+      [
+       [ -3.0,	4.0,	6.0],
+       [ -2.0,	-1.0, -4.0],
+       [  3.0,	0.0,  5.0]
+      ]
+    }
+
+    it "4x4 Sigmoid computation" do
+      compute = Cl::Brains::CLMatrixMath.new(3)
+      puts Benchmark.measure {
+        expect(compute.sigmoid([[-1, 2],[1, -2]]).execute.rubynize).to eq([[0.2689414322376251, 0.8807970285415649], [0.7310585975646973, 0.11920291930437088]])
+      }
+    end
+  end
 
   context "Matrix operations" do
     let(:matrix_a) {
@@ -47,7 +64,7 @@ RSpec.describe Cl::Brains do
     it "4x4 Matrix multiplication" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       puts Benchmark.measure {
-        expect(compute.prepare([[-1, 2],[1, -2]], [[2, -2],[-1, 2]]).execute.rubynize).to eq([[-4, 6], [4, -6]])
+        expect(compute.mul([[-1, 2],[1, -2]], [[2, -2],[-1, 2]]).execute.rubynize).to eq([[-4, 6], [4, -6]])
       }
       puts Benchmark.measure {
         expect((Matrix[*[[-1, 2],[1, -2]]] *  Matrix[*[[2, -2],[-1, 2]]]).to_a).to eq([[-4, 6], [4, -6]])
@@ -57,7 +74,7 @@ RSpec.describe Cl::Brains do
     it "Matrix multiplication" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       puts Benchmark.measure {
-        expect(compute.prepare(matrix_a, matrix_b).execute.rubynize).to eq([
+        expect(compute.mul(matrix_a, matrix_b).execute.rubynize).to eq([
           [1.0,	18.0,	11.0],
           [2.0,	-10.0, -2.0],
           [-7.0,	6.0,	6.0]
@@ -75,7 +92,7 @@ RSpec.describe Cl::Brains do
     it "Matrix multiplication 2" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       expect((Matrix[*matrix_a] *  Matrix[*matrix_x]).to_a).to eq( [[-13.0], [8.0], [-12.0]])
-      expect(compute.prepare(matrix_a, matrix_x).execute.rubynize).to eq(
+      expect(compute.mul(matrix_a, matrix_x).execute.rubynize).to eq(
         [
           [-13.0],
           [8.0],
@@ -94,7 +111,7 @@ RSpec.describe Cl::Brains do
       ap  "Using GPU"
       compute = Cl::Brains::CLMatrixMath.new(512)
       puts Benchmark.measure {
-        expect(compute.prepare(ma, mb).execute.rubynize).to eq(expected)
+        expect(compute.mul(ma, mb).execute.rubynize).to eq(expected)
       }
     end
   end

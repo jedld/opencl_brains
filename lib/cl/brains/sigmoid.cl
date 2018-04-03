@@ -1,8 +1,9 @@
- __kernel void sigmoid(uint col_size, uint row_size, __global const float *A, __global float *C) {
+ __kernel void sigmoid(const int M, const int N, __global const float *A, __global float *C) {
 
     // Get the index of the current element to be processed
-    int i = get_global_id(0) / row_size;
-    int j = get_global_id(0) % col_size;
+    // Get the index of the current element to be processed
+    const int globalRow = get_global_id(0); // Row ID of C (0..M)
+    const int globalCol = get_global_id(1); // Col ID of C (0..N)
     
-    C[i * col_size + j] = 1f / ( 1f + exp(-A[i * col_size + j])
+    C[globalRow * N + globalCol] = 1.0f / ( 1.0f + exp(-A[globalRow * N + globalCol]));
 }

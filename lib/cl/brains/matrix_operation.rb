@@ -11,6 +11,12 @@ module Cl
                 @events = events || []
             end
 
+            def program!
+                @@matrix_source ||= File.read(File.join(File.dirname(__FILE__), 'matrix.cl'))
+                @prog = @context.create_program_with_source( @@matrix_source )
+                @prog.build
+            end
+
             def introspect
                 { cl_inputs: [ :cl_matrix_a, :cl_matrix_b ], inputs: [:matrix_a, :matrix_b], name: self.class.name }
             end
