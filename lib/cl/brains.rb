@@ -23,7 +23,7 @@ module Cl
       end
 
       def prepare(matrix_a, matrix_b)
-        Cl::Brains::MatrixOperation.new(@context, @prog, @queue, @cols, matrix_a, matrix_b)
+        Cl::Brains::MatrixOperation.new(@context, @prog, @queue, matrix_a, matrix_b)
       end
     end
   end

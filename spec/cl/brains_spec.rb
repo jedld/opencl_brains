@@ -12,7 +12,7 @@ RSpec.describe Cl::Brains do
     size.times do |row|
       row_arr = []
       size.times do |col|
-        row_arr << rand(1000)
+        row_arr << rand(100)
       end
       arr << row_arr
     end
@@ -22,37 +22,54 @@ RSpec.describe Cl::Brains do
   context "Matrix operations" do
     let(:matrix_a) {
       [
-       [ -3,	4,	6],
-       [ -2,	-1, -4],
-       [  3,	0,  5]
+       [ -3.0,	4.0,	6.0],
+       [ -2.0,	-1.0, -4.0],
+       [  3.0,	0.0,  5.0]
       ]
     }
 
     let(:matrix_b) {
       [
-       [1,	2,	-3],
-       [4,	6,	-4],
-       [-2,	0,   3]
+       [1.0,	2.0,	-3.0],
+       [4.0,	6.0,	-4.0],
+       [-2.0,	0.0,   3.0]
+      ]
+    }
+
+    let(:matrix_x) {
+      [
+        [1.0],
+        [2.0],
+        [-3.0]
       ]
     }
 
     it "Matrix multiplication" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       puts Benchmark.measure {
-        
-        expect(compute.prepare(matrix_a, matrix_b).mul_int).to eq([
-          [1,	18,	11],
-          [2,	-10, -2],
-          [-7,	6,	6]
+        expect(compute.prepare(matrix_a, matrix_b).mul_float).to eq([
+          [1.0,	18.0,	11.0],
+          [2.0,	-10.0, -2.0],
+          [-7.0,	6.0,	6.0]
         ])
       }
       puts Benchmark.measure {
       expect((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a).to eq([
-        [1,	18,	11],
-        [2,	-10, -2],
-        [-7,	6,	6]
+        [1.0,	18.0,	11.0],
+        [2.0,	-10.0, -2.0],
+        [-7.0,	6.0,	6.0]
       ])
       }
+    end
+
+    it "Matrix multiplication 2" do
+      compute = Cl::Brains::CLMatrixMath.new(3)
+      expect((Matrix[*matrix_a] *  Matrix[*matrix_x]).to_a).to eq( [[-13.0], [8.0], [-12.0]])
+      expect(compute.prepare(matrix_a, matrix_x).mul_float).to eq([
+          [1.0,	18.0,	11.0],
+          [2.0,	-10.0, -2.0],
+          [-7.0,	6.0,	6.0]
+        ])
     end
 
     it "large matrices" do
@@ -66,7 +83,7 @@ RSpec.describe Cl::Brains do
       ap  "Using GPU"
       compute = Cl::Brains::CLMatrixMath.new(512)
       puts Benchmark.measure {
-        expect(compute.prepare(ma, mb).mul_int).to eq(expected)
+        expect(compute.prepare(ma, mb).mul_float).to eq(expected)
       }
     end
   end
