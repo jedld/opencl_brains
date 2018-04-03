@@ -1,14 +1,18 @@
- __kernel void matrix(uint col_size, uint row_size, __global const float *A, __global const float *B, __global float *C) {
+ __kernel void matrix(const int M, const int N, const int K,
+                      const __global float* A,
+                      const __global float* B,
+                      __global float* C) {
 
     // Get the index of the current element to be processed
-    int i = get_global_id(0) / col_size;
-    int j = get_global_id(0) % row_size;
+    const int globalRow = get_global_id(0); // Row ID of C (0..M)
+    const int globalCol = get_global_id(1); // Col ID of C (0..N)
     
-        
-    int value = 0;
-    for(int k = 0; k < col_size; k++)
-    {
-        value += A[i * col_size + k] *  B[k * col_size + j];
+    // Compute a single element (loop over K)
+    float acc = 0.0f;
+    for (int k=0; k<K; k++) {
+        acc += A[globalRow*K + k] * B[k*N + globalCol];
     }
-    C[i * col_size + j] = value;
+ 
+    // Store the result
+    C[globalRow*N + globalCol] = acc;
 }

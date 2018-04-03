@@ -23,7 +23,9 @@ module Cl
       end
 
       def prepare(matrix_a, matrix_b)
-        Cl::Brains::MatrixOperation.new(@context, @prog, @queue, matrix_a, matrix_b)
+        matrix_op = Cl::Brains::MatrixOperation.new(@context, @prog, @queue)
+        matrix_op.nativize(matrix_a: matrix_a, matrix_b: matrix_b)
+        matrix_op
       end
     end
   end
