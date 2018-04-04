@@ -16,16 +16,16 @@ RSpec.describe Cl::Brains do
       end
       arr << row_arr
     end
-    arr
+    Cl::Brains::Tensor.matrix(arr)
   end
   
   context "sigmoid operations" do
     let(:matrix_a) {
-      [
+      Cl::Brains::Tensor.matrix([
        [ -3.0,	4.0,	6.0],
        [ -2.0,	-1.0, -4.0],
        [  3.0,	0.0,  5.0]
-      ]
+      ])
     }
 
     it "4x4 Sigmoid computation" do
@@ -38,33 +38,33 @@ RSpec.describe Cl::Brains do
 
   context "Matrix operations" do
     let(:matrix_a) {
-      [
+      Cl::Brains::Tensor.matrix([
        [ -3.0,	4.0,	6.0],
        [ -2.0,	-1.0, -4.0],
        [  3.0,	0.0,  5.0]
-      ]
+      ])
     }
 
     let(:matrix_b) {
-      [
+      Cl::Brains::Tensor.matrix([
        [1.0,	2.0,	-3.0],
        [4.0,	6.0,	-4.0],
        [-2.0,	0.0,   3.0]
-      ]
+      ])
     }
 
     let(:matrix_x) {
-      [
+      Cl::Brains::Tensor.matrix([
         [1.0],
         [2.0],
         [-3.0]
-      ]
+      ])
     }
 
     it "4x4 Matrix multiplication" do
       compute = Cl::Brains::CLMatrixMath.new(3)
       puts Benchmark.measure {
-        expect(compute.mul([[-1, 2],[1, -2]], [[2, -2],[-1, 2]]).execute.rubynize).to eq([[-4, 6], [4, -6]])
+        expect(compute.mul(Cl::Brains::Tensor.matrix([[-1, 2],[1, -2]]), Cl::Brains::Tensor.matrix([[2, -2],[-1, 2]])).execute.rubynize).to eq([[-4, 6], [4, -6]])
       }
       puts Benchmark.measure {
         expect((Matrix[*[[-1, 2],[1, -2]]] *  Matrix[*[[2, -2],[-1, 2]]]).to_a).to eq([[-4, 6], [4, -6]])

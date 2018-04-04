@@ -1,6 +1,7 @@
 require "cl/brains/version"
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
+require 'cl/brains/tensor'
 require "cl/brains/matrix_operation"
 require "cl/brains/sigmoid_operation"
 

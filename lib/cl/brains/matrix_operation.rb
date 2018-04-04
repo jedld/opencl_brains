@@ -22,8 +22,8 @@ module Cl
             end
 
             def execute
-                @matrix_c = NArray.sfloat(@cols * @rows)
-                @b_matrix_c = @context.create_buffer(@matrix_c.size * @matrix_c.element_size)
+                @output_tensor = Cl::Brains::Tensor.new(:float, 2, {cols: @cols, rows: @rows} )
+                @b_matrix_c = @output_tensor.open_cl_buffer(@context)
 
                 m = OpenCL::Int1::new(@rows)
                 n = OpenCL::Int1::new(@cols)
@@ -38,29 +38,18 @@ module Cl
 
             # generate native buffers from params
             def nativize(matrix_a:, matrix_b:)
-                native_matrix_a = NArray.sfloat(matrix_a.size * matrix_a[0].size)
-                native_matrix_b = NArray.sfloat(matrix_b.size * matrix_b[0].size)
+                @cols = matrix_b.shape.cols
+                @rows = matrix_a.shape.rows
+                @width = matrix_a.shape.cols
 
-                @cols = matrix_b[0].size
-                @rows = matrix_a.size
-                @width = matrix_a[0].size
-
-                matrix_a.flatten.each_with_index do |element, index|
-                    native_matrix_a[index] = element
-                end
-          
-                matrix_b.flatten.each_with_index do |element, index|
-                    native_matrix_b[index] = element
-                end
-
-                @cl_matrix_a = @context.create_buffer(native_matrix_a.size * native_matrix_a.element_size, :flags => OpenCL::Mem::COPY_HOST_PTR, :host_ptr => native_matrix_a)
-                @cl_matrix_b = @context.create_buffer(native_matrix_b.size * native_matrix_b.element_size, :flags => OpenCL::Mem::COPY_HOST_PTR, :host_ptr => native_matrix_b)
+                @cl_matrix_a = matrix_a.open_cl_buffer(@context)
+                @cl_matrix_b = matrix_b.open_cl_buffer(@context)
             end
 
             def rubynize
-                @queue.enqueue_read_buffer(@b_matrix_c, @matrix_c, :event_wait_list => @events)
+                @output_tensor.sync_cl_buffer(@queue, @events)
                 @queue.finish
-                @matrix_c.to_a.each_slice(@cols).collect { |slice| slice }
+                @output_tensor
             end
         end
     end
