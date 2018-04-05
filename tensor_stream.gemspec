@@ -1,17 +1,17 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'cl/brains/version'
+require 'tensor_stream/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "cl-brains"
-  spec.version       = Cl::Brains::VERSION
+  spec.name          = "tensor_stream"
+  spec.version       = TensorStream::VERSION
   spec.authors       = ["Joseph Emmanuel Dayo"]
   spec.email         = ["joseph.dayo@gmail.com"]
 
-  spec.summary       = %q{OpenCL Machine Learning for Ruby}
-  spec.description   = %q{OpenCL Machine Learning for Ruby}
-  spec.homepage      = "http://www.github.com/jedld/cl-brains"
+  spec.summary       = %q{High Performance Machine Learning for Ruby}
+  spec.description   = %q{High Performance Machine Learning for Ruby}
+  spec.homepage      = "http://www.github.com/jedld/tensor_stream"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
