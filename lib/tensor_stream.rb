@@ -1,6 +1,8 @@
 require "tensor_stream/version"
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
+require 'tensor_stream/types'
+require 'tensor_stream/tensor_shape'
 require 'tensor_stream/tensor'
 require 'tensor_stream/operation'
 require "tensor_stream/gemm/gemm"

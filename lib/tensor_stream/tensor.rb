@@ -29,23 +29,40 @@ module TensorStream
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
       @rank = rank
-      @shape = OpenStruct.new(shape)
+      @shape = TensorShape.new(shape, rank)
 
       @is_const = options[:const] || false
+      @name = "#{is_const ? "Const#{Tensor.const_name}:#{rank}" : "Variable#{Tensor.var_name}:#{rank}"}"
+    end
 
-      @native_buffer = if data_type == :float32 && rank == 2
-        NArray.sfloat(@shape.cols * @shape.rows)
-      elsif data_type == :float32 && rank == 0
-        NArray.sfloat(1)
-      else
-        raise "Invalid data type #{data_type}"
+    def self.Variable(value, dtype = nil)
+      if value.is_a?(String)
+        TensorStream::Tensor.new(dtype || :string_ref, 0, [])
+      elsif value.is_a?(Integer)
+        TensorStream::Tensor.new(dtype || :int32_ref, 0, [])
+      elsif value.is_a?(Float)
+        TensorStream::Tensor.new(dtype || :float32_ref, 0, [])
       end
-
-      @name = "#{is_const ? "Const#{Tensor.const_name}:#{rank}" : "Var#{Tensor.var_name}:#{rank}"}"
     end
 
     def self.constant(value, options = {})
-      TensorStream::Tensor.new(options[:dtype] || :float32, 0, nil, { const: true })
+      if value.is_a?(Float)
+        TensorStream::Tensor.new(options[:dtype] || :float32, 0, [], { const: true })
+      elsif value.is_a?(Integer)
+        TensorStream::Tensor.new(options[:dtype] || :int32, 0, [], { const: true })
+      elsif value.is_a?(String)
+        TensorStream::Tensor.new(options[:dtype] || :string, 0, [], { const: true })
+      elsif value.is_a?(Array)
+        dtype = nil
+        rank = 1
+        dimensions = []
+        begin
+          dtype, rank, value, d = dtype_eval(dtype, rank, value)
+          dimensions << d
+        end while dtype == :array
+ 
+        TensorStream::Tensor.new(dtype, rank, dimensions, { const: true })
+      end
     end
 
     def self.matrix(m)
@@ -59,6 +76,16 @@ module TensorStream
       end
 
       tensor
+    end
+
+    def build_buffer
+      @native_buffer = if @data_type == :float32 && @rank == 2
+        NArray.sfloat(@shape.cols * @shape.rows)
+      elsif @data_type == :float32 && @rank == 0
+        NArray.sfloat(1)
+      else
+        raise "Invalid data type #{@data_type}"
+      end
     end
 
     def +(operand)
@@ -84,6 +111,25 @@ module TensorStream
 
     def sync_cl_buffer(queue, events = [])
       queue.enqueue_read_buffer(@cl_buffer, @native_buffer, :event_wait_list => events)
+    end
+
+    protected
+
+    def self.dtype_eval(dtype, rank, value)
+      dtype = if value[0].is_a?(String)
+        :string
+      elsif value[0].is_a?(Float)
+        :float32
+      elsif value[0].is_a?(Integer)
+        :int32
+      elsif value[0].is_a?(Array)
+        rank += 1
+        :array
+      else
+        :float32
+      end
+
+      [dtype, rank, value[0], value.size]
     end
   end
 end

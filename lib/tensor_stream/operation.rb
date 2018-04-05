@@ -13,6 +13,10 @@ module TensorStream
       @name
     end
 
+    def +(operand)
+      TensorStream::Operation.new(:add, self, operand)
+    end
+
     private
 
     def self.operation_counter
