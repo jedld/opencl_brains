@@ -2,7 +2,7 @@ require 'ostruct'
 
 module TensorStream
   class Tensor
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value
 
     def self.const_name
       @@const_counter ||= 0
@@ -30,38 +30,53 @@ module TensorStream
       @data_type = data_type
       @rank = rank
       @shape = TensorShape.new(shape, rank)
-
+      @value = []
       @is_const = options[:const] || false
       @name = "#{is_const ? "Const#{Tensor.const_name}:#{rank}" : "Variable#{Tensor.var_name}:#{rank}"}"
+      if options[:value]
+        if options[:value].kind_of?(Array)
+          @value = options[:value].collect do |v|
+            Tensor.constant(v, dtype: data_type)
+          end
+        else
+          @value = options[:value]
+        end
+      end
+    end
+
+    def self.reset_counters
+      @@const_counter = 0
+      @@var_counter = 0
     end
 
     def self.Variable(value, dtype = nil)
       if value.is_a?(String)
-        TensorStream::Tensor.new(dtype || :string_ref, 0, [])
+        TensorStream::Tensor.new(dtype || :string_ref, 0, [], value: value)
       elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(dtype || :int32_ref, 0, [])
+        TensorStream::Tensor.new(dtype || :int32_ref, 0, [], value: value)
       elsif value.is_a?(Float)
-        TensorStream::Tensor.new(dtype || :float32_ref, 0, [])
+        TensorStream::Tensor.new(dtype || :float32_ref, 0, [], value: value)
       end
     end
 
     def self.constant(value, options = {})
       if value.is_a?(Float)
-        TensorStream::Tensor.new(options[:dtype] || :float32, 0, [], { const: true })
+        TensorStream::Tensor.new(options[:dtype] || :float32, 0, [], { const: true, value: value })
       elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(options[:dtype] || :int32, 0, [], { const: true })
+        TensorStream::Tensor.new(options[:dtype] || :int32, 0, [], { const: true, value: value })
       elsif value.is_a?(String)
-        TensorStream::Tensor.new(options[:dtype] || :string, 0, [], { const: true })
+        TensorStream::Tensor.new(options[:dtype] || :string, 0, [], { const: true, value: value })
       elsif value.is_a?(Array)
         dtype = nil
         rank = 1
         dimensions = []
+        value_ptr = value
         begin
-          dtype, rank, value, d = dtype_eval(dtype, rank, value)
+          dtype, rank, value_ptr, d = dtype_eval(dtype, rank, value_ptr)
           dimensions << d
         end while dtype == :array
  
-        TensorStream::Tensor.new(dtype, rank, dimensions, { const: true })
+        TensorStream::Tensor.new(dtype, rank, dimensions, { const: true, value: value })
       end
     end
 
@@ -92,17 +107,21 @@ module TensorStream
       TensorStream::Operation.new(:add, self, operand)
     end
 
+    def [](index)
+      TensorStream::Operation.new(:slice, self, index)
+    end
+
     def to_s
       @name
     end
 
-    def to_ary
-      if rank == 2
-        @native_buffer.to_a.each_slice(shape.cols).collect { |slice| slice }
-      else
-        raise "Invalid rank"
-      end
-    end
+    # def to_ary
+    #   if rank == 2
+    #     @native_buffer.to_a.each_slice(shape.cols).collect { |slice| slice }
+    #   else
+    #     raise "Invalid rank"
+    #   end
+    # end
 
     # open cl methods
     def open_cl_buffer(context)

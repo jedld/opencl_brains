@@ -17,6 +17,14 @@ module TensorStream
       TensorStream::Operation.new(:add, self, operand)
     end
 
+    def [](index)
+      TensorStream::Operation.new(:slice, self, index)
+    end
+
+    def self.reset_counters
+      @@op_counter = 0
+    end
+
     private
 
     def self.operation_counter
@@ -34,8 +42,10 @@ module TensorStream
     end
 
     def set_name
-      @name = if @operation = :add
+      @name = if @operation == :add
         "add#{Operation.operation_counter}:#{@rank}"
+      elsif @operation == :slice
+        "slice#{Operation.operation_counter}:#{@rank}"
       end
     end
   end

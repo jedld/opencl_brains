@@ -11,5 +11,9 @@ module TensorStream
       end.join(',')
       "TensorShape([#{dimensions}])"
     end
+
+    def [](index)
+      @shape[index]
+    end
   end
 end
