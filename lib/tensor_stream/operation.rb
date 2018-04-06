@@ -23,6 +23,11 @@ module TensorStream
         if @items[0].shape.rank == 0
           TensorStream.constant(@items[0].ruby_eval + @items[1].ruby_eval, dtype: @items[0].dtype)
         end
+      elsif operation == :mul
+        # ruby scalar
+        if @items[0].shape.rank == 0
+          TensorStream.constant(@items[0].ruby_eval * @items[1].ruby_eval, dtype: @items[0].dtype)
+        end
       end
     end
 
