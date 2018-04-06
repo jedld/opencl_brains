@@ -9,5 +9,9 @@ module TensorStream
     def self.float32
       :float32
     end
+
+    def self.int32
+      :int32
+    end
   end
 end

@@ -32,52 +32,28 @@ module TensorStream
       @shape = TensorShape.new(shape, rank)
       @value = []
       @is_const = options[:const] || false
-      @name = "#{is_const ? "Const#{Tensor.const_name}:#{rank}" : "Variable#{Tensor.var_name}:#{rank}"}"
+      @graph = options[:graph] || TensorStream.get_default_graph
+      @name = options[:name] || build_name
       if options[:value]
         if options[:value].kind_of?(Array)
           @value = options[:value].collect do |v|
-            Tensor.constant(v, dtype: data_type)
+            TensorStream.constant(v, dtype: data_type)
           end
         else
           @value = options[:value]
         end
       end
+
+      @graph.add_node(self)
+    end
+
+    def dtype
+      @data_type
     end
 
     def self.reset_counters
       @@const_counter = 0
       @@var_counter = 0
-    end
-
-    def self.Variable(value, dtype = nil)
-      if value.is_a?(String)
-        TensorStream::Tensor.new(dtype || :string_ref, 0, [], value: value)
-      elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(dtype || :int32_ref, 0, [], value: value)
-      elsif value.is_a?(Float)
-        TensorStream::Tensor.new(dtype || :float32_ref, 0, [], value: value)
-      end
-    end
-
-    def self.constant(value, options = {})
-      if value.is_a?(Float)
-        TensorStream::Tensor.new(options[:dtype] || :float32, 0, [], { const: true, value: value })
-      elsif value.is_a?(Integer)
-        TensorStream::Tensor.new(options[:dtype] || :int32, 0, [], { const: true, value: value })
-      elsif value.is_a?(String)
-        TensorStream::Tensor.new(options[:dtype] || :string, 0, [], { const: true, value: value })
-      elsif value.is_a?(Array)
-        dtype = nil
-        rank = 1
-        dimensions = []
-        value_ptr = value
-        begin
-          dtype, rank, value_ptr, d = dtype_eval(dtype, rank, value_ptr)
-          dimensions << d
-        end while dtype == :array
- 
-        TensorStream::Tensor.new(dtype, rank, dimensions, { const: true, value: value })
-      end
     end
 
     def self.matrix(m)
@@ -111,6 +87,10 @@ module TensorStream
       TensorStream::Operation.new(:slice, self, index)
     end
 
+    def *(operand)
+      TensorStream::Operation.new(:mul, self, operand)
+    end
+
     def to_s
       @name
     end
@@ -132,23 +112,13 @@ module TensorStream
       queue.enqueue_read_buffer(@cl_buffer, @native_buffer, :event_wait_list => events)
     end
 
+    def eval
+    end
+
     protected
 
-    def self.dtype_eval(dtype, rank, value)
-      dtype = if value[0].is_a?(String)
-        :string
-      elsif value[0].is_a?(Float)
-        :float32
-      elsif value[0].is_a?(Integer)
-        :int32
-      elsif value[0].is_a?(Array)
-        rank += 1
-        :array
-      else
-        :float32
-      end
-
-      [dtype, rank, value[0], value.size]
+    def build_name
+      "#{@is_const ? "Const#{Tensor.const_name}:#{@rank}" : "Variable#{Tensor.var_name}:#{@rank}"}"
     end
   end
 end

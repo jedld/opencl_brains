@@ -1,5 +1,5 @@
 module TensorStream
-  class Operation
+  class Operation < Tensor
     attr_accessor :name, :operation, :items, :rank
 
     def initialize(operation, a, b, options = {})
@@ -11,14 +11,6 @@ module TensorStream
 
     def to_s
       @name
-    end
-
-    def +(operand)
-      TensorStream::Operation.new(:add, self, operand)
-    end
-
-    def [](index)
-      TensorStream::Operation.new(:slice, self, index)
     end
 
     def self.reset_counters
