@@ -17,6 +17,15 @@ module TensorStream
       @@op_counter = 0
     end
 
+    def ruby_eval
+      if operation == :add
+        # ruby scalar
+        if @items[0].shape.rank == 0
+          TensorStream.constant(@items[0].ruby_eval + @items[1].ruby_eval, dtype: @items[0].dtype)
+        end
+      end
+    end
+
     private
 
     def self.operation_counter

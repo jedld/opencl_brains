@@ -56,6 +56,10 @@ module TensorStream
       @@var_counter = 0
     end
 
+    def ruby_eval
+      @value
+    end
+
     def self.matrix(m)
       cols = m[0].size
       rows = m.size
