@@ -7,6 +7,7 @@ RSpec.describe TensorStream::Tensor do
   before(:each) do
     described_class.reset_counters
     TensorStream::Operation.reset_counters
+    TensorStream::Graph.create_default
   end
 
   describe "Tensors" do
@@ -17,6 +18,7 @@ RSpec.describe TensorStream::Tensor do
       d = TensorStream.Variable(451, TensorStream::Types.int16)
       e = TensorStream.Variable(451.12)
       total = a + b + c
+      # expect(TensorStream::Graph.get_default_graph.nodes.keys).to eq([])
       expect(a.to_s).to eq("Const:0")
       expect(b.to_s).to eq("Const_1:0")
       expect(c.to_s).to eq("Const_2:0")
@@ -77,7 +79,14 @@ RSpec.describe TensorStream::Tensor do
     it "evaluates a tensor" do
       constant = TensorStream.constant([1, 2, 3])
       tensor = constant * constant
-      expect(tensor.eval()).to eq("")
+      expect(tensor.eval()).to eq([1, 4, 9])
+    end
+  end
+
+  describe "#ruby_eval" do
+    it "evaluates tensor to its ruby equivalent value" do
+      a = TensorStream.constant([3.0, 1.0], dtype: TensorStream::Types.float32)
+      expect(a.ruby_eval).to eq([3.0, 1.0])
     end
   end
 

@@ -7,6 +7,7 @@ require 'tensor_stream/session'
 require 'tensor_stream/tensor_shape'
 require 'tensor_stream/tensor'
 require 'tensor_stream/operation'
+require 'tensor_stream/placeholder'
 require "tensor_stream/gemm/gemm"
 require "tensor_stream/sigmoid/sigmoid"
 
@@ -49,6 +50,15 @@ module TensorStream
 
       TensorStream::Tensor.new(dtype, rank, dimensions, shared_options)
     end
+  end
+
+  def self.placeholder(dtype)
+    TensorStream::Placeholder.new(dtype, nil, nil)
+  end
+
+  def self.random_uniform(shape: , dtype: :float32)
+    options = {shape: shape, dtype: dtype}
+    TensorStream::Operation.new(:random_uniform, nil, nil, options)
   end
 
   private

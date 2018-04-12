@@ -5,25 +5,33 @@ module TensorStream
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value
 
     def self.const_name
-      @@const_counter ||= 0
+      @const_counter ||= 0
 
-      name = if @@const_counter == 0
+      name = if @const_counter == 0
         ""
       else
-        "_#{@@const_counter}"
+        "_#{@const_counter}"
       end
 
-      @@const_counter += 1
+      @const_counter += 1
       
       name
     end
 
     def self.var_name
-      @@var_counter ||= 0
-      @@var_counter += 1
+      @var_counter ||= 0
+      @var_counter += 1
 
-      return "" if @@var_counter == 1
-      return "_#{@@var_counter}"
+      return "" if @var_counter == 1
+      return "_#{@var_counter}"
+    end
+
+    def self.placeholder_name
+      @placeholder_counter ||= 0
+      @placeholder_counter += 1
+
+      return "" if @placeholder_counter == 1
+      return "_#{@placeholder_counter}"
     end
 
     def initialize(data_type, rank, shape, options = {})
@@ -52,12 +60,23 @@ module TensorStream
     end
 
     def self.reset_counters
-      @@const_counter = 0
-      @@var_counter = 0
+      @const_counter = 0
+      @var_counter = 0
+      @placeholder_counter = 0
     end
 
-    def ruby_eval
-      @value
+    def ruby_eval(session = Session.default_session, evaluation_cache = {} )
+      return evaluation_cache[@name] if evaluation_cache.has_key?(@name)
+
+      if @value.kind_of?(Array)
+        @value.collect do |item|
+          item.respond_to?(:ruby_eval) ? item.ruby_eval(session, evaluation_cache) : item
+        end
+      else
+        @value.respond_to?(:ruby_eval) ? @value.ruby_eval(session, evaluation_cache) : @value
+      end.tap do |result|
+        evaluation_cache[@name] = result
+      end
     end
 
     def self.matrix(m)
@@ -92,7 +111,11 @@ module TensorStream
     end
 
     def *(operand)
-      TensorStream::Operation.new(:mul, self, operand)
+      TensorStream::Operation.new(:mul, self,operand)
+    end
+
+    def collect(&block)
+      @value.collect(&block)
     end
 
     def to_s
@@ -117,10 +140,18 @@ module TensorStream
     end
 
     def eval
+      ruby_eval
     end
 
     protected
 
+    def auto_wrap(operand)
+      if !operand.kind_of?(Tensor)
+        TensorStream.constant(operand)
+      else
+        operand
+      end
+    end
     def build_name
       "#{@is_const ? "Const#{Tensor.const_name}:#{@rank}" : "Variable#{Tensor.var_name}:#{@rank}"}"
     end
