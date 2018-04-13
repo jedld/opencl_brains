@@ -22,6 +22,10 @@ module TensorStream
       Operation.new(:assign, self, value)
     end
 
+    def read_value
+      @value
+    end
+
     def assign_add(value)
       Operation.new(:assign_add, self, value)
     end

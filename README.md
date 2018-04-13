@@ -1,15 +1,15 @@
-# Cl::Brains
+# TensorStream
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/cl/brains`. To experiment with that code, run `bin/console` for an interactive prompt.
+A reimplementation of TensorFlow for ruby. This is a ground up implementation with no dependency on TensorFlow. Effort has been made to make the programming style as near to TensorFlow as possible, comes with a pure ruby evaluator by default as well with support for an opencl evaluator.
 
-TODO: Delete this and the text above, and describe your gem
+The goal of this gem is to have a high performance machine learning and compute solution for ruby with support for a wide range of hardware and software configuration.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'cl-brains'
+gem 'tensor_stream'
 ```
 
 And then execute:
@@ -18,11 +18,11 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install cl-brains
+    $ gem install tensor_stream
 
 ## Usage
 
-TODO: Write usage instructions here
+Usage is similar to TensorFlow with ruby style semantics
 
 ## Development
 

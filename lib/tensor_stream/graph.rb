@@ -36,9 +36,13 @@ module TensorStream
 
     def add_variable(node, options = {})
       fail "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !options[:reuse]
-      
+
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
       @nodes[node.name] = node
+    end
+
+    def control_dependencies(dependencies = [], &block)
+      
     end
 
     protected

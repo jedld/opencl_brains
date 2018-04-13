@@ -1,4 +1,5 @@
 module TensorStream
+  ## PURE ruby evaluator used for testing and development
   class RubyEvaluator
     def initialize(session, context)
       @session = session
