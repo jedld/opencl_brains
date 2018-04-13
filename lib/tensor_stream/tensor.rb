@@ -125,8 +125,8 @@ module TensorStream
       queue.enqueue_read_buffer(@cl_buffer, @native_buffer, :event_wait_list => events)
     end
 
-    def eval
-      Session.default_session.run(self)
+    def eval(options = {})
+      Session.default_session.run(self, options)
     end
 
     protected

@@ -2,13 +2,16 @@ require "tensor_stream/version"
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
 require 'tensor_stream/evaluator/ruby_evaluator'
+require 'tensor_stream/graph_keys'
 require 'tensor_stream/types'
 require 'tensor_stream/graph'
 require 'tensor_stream/session'
 require 'tensor_stream/tensor_shape'
 require 'tensor_stream/tensor'
+require 'tensor_stream/variable'
 require 'tensor_stream/operation'
 require 'tensor_stream/placeholder'
+require 'tensor_stream/control_flow'
 require "tensor_stream/gemm/gemm"
 require "tensor_stream/sigmoid/sigmoid"
 
@@ -53,6 +56,18 @@ module TensorStream
     end
   end
 
+  def self.group(inputs)
+    TensorStream::ControlFlow.new(:group, inputs)
+  end
+
+  def self.get_variable(name, options = {})
+    TensorStream::Variable.new(options[:dtype] || :float32, nil, options[:shape], name: name, initializer: options[:initializer])
+  end
+
+  def self.get_collection(name, options = {})
+    Graph.get_default_graph.get_collection(name, options)
+  end
+
   def self.placeholder(dtype)
     TensorStream::Placeholder.new(dtype, nil, nil)
   end
@@ -60,6 +75,14 @@ module TensorStream
   def self.random_uniform(shape: , dtype: :float32)
     options = {shape: shape, dtype: dtype}
     TensorStream::Operation.new(:random_uniform, nil, nil, options)
+  end
+
+  def self.global_variables_initializer
+    TensorStream::Variable.global_variables_initializer
+  end
+
+  def self.zeros_initializer(options = {})
+    TensorStream::Operation.new(:zeros, nil, nil, options)
   end
 
   private

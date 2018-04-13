@@ -83,10 +83,17 @@ RSpec.describe TensorStream::Tensor do
     end
   end
 
-  describe "#ruby_eval" do
+  describe "#eval" do
     it "evaluates tensor to its ruby equivalent value" do
       a = TensorStream.constant([3.0, 1.0], dtype: TensorStream::Types.float32)
       expect(a.eval).to eq([3.0, 1.0])
+    end
+
+    it "evalutes placeholders" do
+      x = TensorStream.placeholder(TensorStream::Types.float32)
+      y = TensorStream.placeholder(TensorStream::Types.float32)
+      z = x + y
+      expect(z.eval(feed_dict: { x =>  3, y => 4.5})).to eq(7.5)
     end
   end
 

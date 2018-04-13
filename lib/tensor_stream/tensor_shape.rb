@@ -1,6 +1,6 @@
 module TensorStream
   class TensorShape
-    attr_accessor :rank
+    attr_accessor :rank, :shape
     
     def initialize(shape, rank)
       @shape = shape

@@ -7,19 +7,20 @@ module TensorStream
       @items = [a, b]
       @rank = options[:rank] || 0
       @name = set_name
+      @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
       if options[:shape]
         @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
       end
+      @graph.add_node(self)
     end
+
     def to_s
       @name
     end
 
     def self.reset_counters
       @@op_counter = 0
-    end
-    def ruby_eval(session = Session.default_session, evaluation_cache = {})
     end
 
     private

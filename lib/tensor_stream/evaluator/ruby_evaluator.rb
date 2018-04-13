@@ -8,12 +8,20 @@ module TensorStream
     def eval(tensor)
       if tensor.kind_of?(Operation)
         eval_operation(tensor)
+      elsif tensor.kind_of?(Variable)
+        eval_variable(tensor)
       else
         eval_tensor(tensor)
       end
     end
     
     protected
+
+    def eval_variable(tensor)
+      raise "variable #{tensor.name} not initalized" if tensor.value.nil?
+
+      eval_tensor(tensor.value)
+    end
 
     def eval_operation(tensor)
       return @context[tensor.name.to_sym] if @context.has_key?(tensor.name.to_sym)
@@ -46,11 +54,27 @@ module TensorStream
         end
       elsif tensor.operation == :random_uniform
         TensorStream.constant(generate_vector(tensor.options[:shape]))
+      elsif tensor.operation == :flow_group
+        tensor.items.each do |item| eval(item) end
+        nil
+      elsif tensor.operation == :assign
+        tensor.items[0].value = eval(tensor.items[1])
+        tensor
+      elsif tensor.operation == :assign_add
+        tensor.items[0].value = eval(tensor.items[0].value + eval(tensor.items[1]))
+        tensor.items[0].value
+      elsif tensor.operation == :zeros
+        if tensor.shape.shape.size == 0
+          TensorStream.constant(0)
+        else
+          TensorStream.constant(generate_vector(tensor.shape.shape, generator: ->() { 0.0 } ))
+        end
+      else
+        raise "unknown op #{tensor.operation}"
       end.tap do |result|
         @context[tensor.name.to_sym] = result
       end
     end
-
     def eval_tensor(tensor)
       return tensor unless tensor.kind_of?(Tensor)
       return @context[tensor.name] if @context.has_key?(tensor.name)
@@ -109,14 +133,14 @@ module TensorStream
       end
     end
 
-    def generate_vector(shape, dtype: :float32)
+    def generate_vector(shape, dtype: :float32, generator: ->() { rand } )
       if shape.size > 1
         shape[0].times.collect do
-          generate_vector(shape[1..shape.size])
+          generate_vector(shape[1..shape.size], generator: generator, dtype: dtype)
         end
       else
         shape[0].times.collect do
-          rand
+          generator.()
         end
       end
     end
