@@ -86,7 +86,7 @@ RSpec.describe TensorStream::Tensor do
   describe "#ruby_eval" do
     it "evaluates tensor to its ruby equivalent value" do
       a = TensorStream.constant([3.0, 1.0], dtype: TensorStream::Types.float32)
-      expect(a.ruby_eval).to eq([3.0, 1.0])
+      expect(a.eval).to eq([3.0, 1.0])
     end
   end
 

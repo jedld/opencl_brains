@@ -65,20 +65,6 @@ module TensorStream
       @placeholder_counter = 0
     end
 
-    def ruby_eval(session = Session.default_session, evaluation_cache = {} )
-      return evaluation_cache[@name] if evaluation_cache.has_key?(@name)
-
-      if @value.kind_of?(Array)
-        @value.collect do |item|
-          item.respond_to?(:ruby_eval) ? item.ruby_eval(session, evaluation_cache) : item
-        end
-      else
-        @value.respond_to?(:ruby_eval) ? @value.ruby_eval(session, evaluation_cache) : @value
-      end.tap do |result|
-        evaluation_cache[@name] = result
-      end
-    end
-
     def self.matrix(m)
       cols = m[0].size
       rows = m.size
@@ -140,7 +126,7 @@ module TensorStream
     end
 
     def eval
-      ruby_eval
+      Session.default_session.run(self)
     end
 
     protected

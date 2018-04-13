@@ -48,7 +48,7 @@ RSpec.describe TensorStream::Session do
       z = x + y
       sess = TensorStream.Session
       expect(sess.run(z, feed_dict: { x =>  3, y => 4.5})).to eq(7.5)
-      # expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4]})).to eq([])
+      expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4]})).to eq([3, 7])
     end
   end
 end

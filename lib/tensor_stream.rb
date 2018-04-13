@@ -1,6 +1,7 @@
 require "tensor_stream/version"
 require 'opencl_ruby_ffi'
 require 'narray_ffi'
+require 'tensor_stream/evaluator/ruby_evaluator'
 require 'tensor_stream/types'
 require 'tensor_stream/graph'
 require 'tensor_stream/session'
