@@ -28,6 +28,17 @@ RSpec.describe TensorStream::Tensor do
       expect(a.shape.to_s).to eq("TensorShape([])")
     end
 
+    it "automatically adjusts based on shape" do
+      b = TensorStream.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: 'b')
+      expect(b.eval).to eq(
+        [
+         [1.0, 2.0],
+         [3.0, 4.0],
+         [5.0, 6.0]
+        ]
+      )
+    end
+
     it "can define Rank 1 Tensor definitions" do
       a = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       b = TensorStream.constant([])

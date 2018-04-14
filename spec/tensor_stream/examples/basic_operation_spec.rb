@@ -14,7 +14,9 @@ RSpec.describe "Illustrates basic tensorstream operations" do
     TensorStream.Session do |sess|
         puts("a=2, b=3")
         puts("Addition with constants: %i" % sess.run(a+b))
+        expect(sess.run(a+b)).to eq(5.0)
         puts("Multiplication with constants: %i" % sess.run(a*b))
+        expect(sess.run(a*b)).to eq(6.0)
 
         # Basic Operations with variable as graph input
         # The value returned by the constructor represents the output

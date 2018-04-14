@@ -41,11 +41,11 @@ module TensorStream
   def self.constant(value, options = {})
     shared_options = { const: true, value: value, name: options[:name] }
     if value.is_a?(Float)
-      TensorStream::Tensor.new(options[:dtype] || :float32, 0, [], shared_options)
+      TensorStream::Tensor.new(options[:dtype] || :float32, 0, options[:shape] || [], shared_options)
     elsif value.is_a?(Integer)
-      TensorStream::Tensor.new(options[:dtype] || :int32, 0, [], shared_options)
+      TensorStream::Tensor.new(options[:dtype] || :int32, 0, options[:shape] || [], shared_options)
     elsif value.is_a?(String)
-      TensorStream::Tensor.new(options[:dtype] || :string, 0, [], shared_options)
+      TensorStream::Tensor.new(options[:dtype] || :string, 0, options[:shape] || [], shared_options)
     elsif value.is_a?(Array)
       dtype = nil
       rank = 1
@@ -56,7 +56,7 @@ module TensorStream
         dimensions << d
       end while dtype == :array
 
-      TensorStream::Tensor.new(dtype, rank, dimensions, shared_options)
+      TensorStream::Tensor.new(dtype, rank, options[:shape] || dimensions, shared_options)
     end
   end
 

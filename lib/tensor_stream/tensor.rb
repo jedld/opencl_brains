@@ -44,6 +44,11 @@ module TensorStream
       @name = options[:name] || build_name
       if options[:value]
         if options[:value].kind_of?(Array)
+          # check if single dimenstion array is passed
+          if shape.size >= 2 && options[:value].size > 0 && !options[:value][0].kind_of?(Array)
+            options[:value] = reshape(options[:value], shape.reverse.dup)
+          end
+
           @value = options[:value].collect do |v|
             TensorStream.constant(v, dtype: data_type)
           end
@@ -130,6 +135,16 @@ module TensorStream
     end
 
     protected
+
+    def reshape(arr, shape)
+      return arr if shape.size < 2
+
+      slice = shape.shift
+
+      arr.each_slice(slice).collect do |s|
+        reshape(s, shape)
+      end
+    end
 
     def auto_wrap(operand)
       if !operand.kind_of?(Tensor)
