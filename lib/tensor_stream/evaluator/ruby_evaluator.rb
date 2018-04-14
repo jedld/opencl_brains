@@ -70,6 +70,11 @@ module TensorStream
         else
           TensorStream.constant(generate_vector(tensor.shape.shape, generator: ->() { 0.0 } ))
         end
+      elsif tensor.operation == :matmul
+        matrix_a = eval(a)
+        matrix_b = eval(b)
+
+        TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
       else
         raise "unknown op #{tensor.operation}"
       end.tap do |result|

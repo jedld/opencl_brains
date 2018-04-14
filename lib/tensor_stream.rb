@@ -20,18 +20,22 @@ module TensorStream
     TensorStream::Graph.get_default_graph
   end
 
-  def self.Variable(value, dtype = nil)
+  def self.Variable(value, options = {})
     if value.is_a?(String)
-      TensorStream::Tensor.new(dtype || :string_ref, 0, [], value: value)
+      TensorStream::Variale.new(options[:dtype] || :string_ref, 0, [], value: value, name: options[:name])
     elsif value.is_a?(Integer)
-      TensorStream::Tensor.new(dtype || :int32_ref, 0, [], value: value)
+      TensorStream::Variable.new(options[:dtype] || :int32_ref, 0, [], value: value, name: options[:name])
     elsif value.is_a?(Float)
-      TensorStream::Tensor.new(dtype || :float32_ref, 0, [], value: value)
+      TensorStream::Variable.new(options[:dtype] || :float32_ref, 0, [], value: value, name: options[:name])
     end
   end
 
   def self.Session
-    TensorStream::Session.new
+    session = TensorStream::Session.new
+    if block_given?
+      yield session
+    end
+    session
   end
 
   def self.constant(value, options = {})
@@ -83,6 +87,18 @@ module TensorStream
 
   def self.zeros_initializer(options = {})
     TensorStream::Operation.new(:zeros, nil, nil, options)
+  end
+
+  def self.add(a, b)
+    a + b
+  end
+
+  def self.multiply(a, b)
+    a * b
+  end
+
+  def self.matmul(a, b, options = {})
+    TensorStream::Operation.new(:matmul, a, b, options)
   end
 
   private

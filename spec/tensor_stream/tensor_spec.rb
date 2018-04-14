@@ -15,7 +15,7 @@ RSpec.describe TensorStream::Tensor do
       a = TensorStream.constant(3.0, dtype: TensorStream::Types.float32)
       b = TensorStream.constant(4.0)
       c = TensorStream.constant(4.0)
-      d = TensorStream.Variable(451, TensorStream::Types.int16)
+      d = TensorStream.Variable(451, dtype: TensorStream::Types.int16)
       e = TensorStream.Variable(451.12)
       total = a + b + c
       # expect(TensorStream::Graph.get_default_graph.nodes.keys).to eq([])

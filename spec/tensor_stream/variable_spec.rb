@@ -9,6 +9,14 @@ RSpec.describe TensorStream::Variable do
     TensorStream::Graph.create_default
   end
 
+  context "Variable" do
+    it "define a variable" do
+      # Set model weights
+      w = TensorStream.Variable(rand, name: "weight")
+      expect(TensorStream.get_collection(TensorStream::GraphKeys::GLOBAL_VARIABLES)).to include(w)
+    end
+  end
+
   context ".get_variable" do  
     let!(:variable) {
       TensorStream.get_variable("other_variable", dtype: TensorStream::Types.int32,
