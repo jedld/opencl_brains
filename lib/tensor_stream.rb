@@ -76,9 +76,14 @@ module TensorStream
     TensorStream::Placeholder.new(dtype, nil, nil)
   end
 
-  def self.random_uniform(shape: , dtype: :float32)
-    options = {shape: shape, dtype: dtype}
+  def self.random_uniform(shape: , dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
+    options = {shape: shape, dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name}
     TensorStream::Operation.new(:random_uniform, nil, nil, options)
+  end
+
+  def self.random_normal(shape:, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
+    options = {shape: shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
+    TensorStream::Operation.new(:random_normal, nil, nil, options)
   end
 
   def self.global_variables_initializer
