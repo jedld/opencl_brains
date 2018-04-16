@@ -12,7 +12,8 @@ require 'tensor_stream/variable'
 require 'tensor_stream/operation'
 require 'tensor_stream/placeholder'
 require 'tensor_stream/control_flow'
-require 'tensor_stream/libraries/layers'
+require 'tensor_stream/trainer'
+# require 'tensor_stream/libraries/layers'
 require "tensor_stream/gemm/gemm"
 require "tensor_stream/sigmoid/sigmoid"
 
@@ -81,8 +82,8 @@ module TensorStream
     Graph.get_default_graph.get_collection(name, options)
   end
 
-  def self.placeholder(dtype)
-    TensorStream::Placeholder.new(dtype, nil, nil)
+  def self.placeholder(dtype, options = {})
+    TensorStream::Placeholder.new(dtype, nil, options[:shape])
   end
 
   def self.random_uniform(shape: , dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
@@ -107,6 +108,10 @@ module TensorStream
     TensorStream::Operation.new(:zeros, nil, nil, {shape: shape})
   end
 
+  def self.reduce_sum(input_tensor, axis = nil, keepdims: false)
+    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, {axis: axis, keepdims: keepdims})
+  end
+
   def self.add(a, b)
     a + b
   end
@@ -115,8 +120,16 @@ module TensorStream
     a * b
   end
 
+  def self.pow(a, e)
+    a**e
+  end
+
   def self.matmul(a, b, options = {})
     TensorStream::Operation.new(:matmul, a, b, options)
+  end
+
+  def self.train
+    TensorStream::Trainer
   end
 
   private

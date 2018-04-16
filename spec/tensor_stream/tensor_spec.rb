@@ -22,7 +22,7 @@ RSpec.describe TensorStream::Tensor do
       expect(a.to_s).to eq("Const:0")
       expect(b.to_s).to eq("Const_1:0")
       expect(c.to_s).to eq("Const_2:0")
-      expect(total.to_s).to eq("add_1:0")
+      expect(total.to_s).to eq("add_3:0")
       expect(d.to_s).to eq("Variable:0")
       expect(e.to_s).to eq("Variable_2:0")
       expect(a.shape.to_s).to eq("TensorShape([])")

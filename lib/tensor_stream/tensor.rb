@@ -105,6 +105,18 @@ module TensorStream
       TensorStream::Operation.new(:mul, self,operand)
     end
 
+    def **(e)
+      TensorStream::Operation.new(:exp, self, e)
+    end
+
+    def /(operand)
+      TensorStream::Operation.new(:div, self, operand)
+    end
+
+    def -(operand)
+      TensorStream::Operation.new(:sub, self, operand)
+    end
+
     def collect(&block)
       @value.collect(&block)
     end
