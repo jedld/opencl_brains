@@ -161,8 +161,12 @@ module TensorStream
         shape[0].times.collect do
           generator.()
         end
-      else
+      elsif shape.size == 0
         generator.()
+      elsif shape.is_a?(Integer)
+        shape.times.collect do
+          generator.()
+        end
       end
     end
   end

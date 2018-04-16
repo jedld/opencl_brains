@@ -75,6 +75,12 @@ RSpec.describe TensorStream::Tensor do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
       expect(b.shape[0]).to eq(1)
     end
+
+    it "create a vector of zeros with the same size as the number of columns in a given matrix" do
+      my_matrix = TensorStream.constant([[1.0,1.0], [1.0, 1.0]])
+      zeros = TensorStream.zeros(my_matrix.shape[1])
+      expect(zeros.eval).to eq([0.0, 0.0])
+    end
   end
 
   describe "#dtype" do
@@ -115,6 +121,11 @@ RSpec.describe TensorStream::Tensor do
 
       c_1 = TensorStream.constant(2, name: "c")
       expect(c_1.name).to eq("c_1")
+    end
+  end
+
+  describe "tensor reshaping" do
+    it "can reshape a tensor" do
     end
   end
 end

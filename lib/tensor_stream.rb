@@ -12,6 +12,7 @@ require 'tensor_stream/variable'
 require 'tensor_stream/operation'
 require 'tensor_stream/placeholder'
 require 'tensor_stream/control_flow'
+require 'tensor_stream/libraries/layers'
 require "tensor_stream/gemm/gemm"
 require "tensor_stream/sigmoid/sigmoid"
 
@@ -36,6 +37,10 @@ module TensorStream
       yield session
     end
     session
+  end
+
+  def self.layers
+    TensorStream::Layers
   end
 
   def self.constant(value, options = {})
@@ -92,6 +97,10 @@ module TensorStream
 
   def self.zeros_initializer(options = {})
     TensorStream::Operation.new(:zeros, nil, nil, options)
+  end
+
+  def self.zeros(shape, dtype: :float32, name: nil)
+    TensorStream::Operation.new(:zeros, nil, nil, {shape: shape})
   end
 
   def self.add(a, b)
