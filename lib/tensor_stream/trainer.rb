@@ -2,7 +2,7 @@ module TensorStream
   module Train
     class GradientDescentOptimizer < TensorStream::Operation
       def initialize(learning_rate, options = {})
-        @learning_rate = learning_rate
+        @items = [learning_rate]
         @operation = :gradient_descent
         @name = set_name
         @graph = options[:graph] || TensorStream.get_default_graph
@@ -10,7 +10,7 @@ module TensorStream
       end
 
       def minimize(cost)
-        @cost = cost
+        @items << cost
         self
       end
     end

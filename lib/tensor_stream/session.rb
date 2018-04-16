@@ -23,8 +23,8 @@ module TensorStream
           context[k.name.to_sym] = options[:feed_dict][k].kind_of?(Tensor) ? options[:feed_dict][k] : TensorStream.constant(options[:feed_dict][k])
         end
       end if options[:feed_dict]
-
-      result = args.collect { |e| evaluator.eval(evaluator.eval(e)) }
+      execution_context = {}
+      result = args.collect { |e| evaluator.eval(evaluator.eval(e, execution_context), execution_context) }
 
       result.size == 1 ? result.first : result
     end

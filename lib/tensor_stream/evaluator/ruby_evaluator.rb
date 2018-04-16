@@ -8,25 +8,32 @@ module TensorStream
       @context = context
     end
 
-    def eval(tensor)
-      if tensor.kind_of?(Operation)
-        eval_operation(tensor)
+    def eval(tensor, execution_context)
+      child_context = execution_context.dup
+      res = if tensor.kind_of?(Operation)
+        eval_operation(tensor, child_context)
       elsif tensor.kind_of?(Variable)
-        eval_variable(tensor)
+        eval_variable(tensor, child_context)
       else
-        eval_tensor(tensor)
+        eval_tensor(tensor, child_context)
       end
+      execution_context.deep_merge!(returns: child_context[:returns])
+      res
     end
     
     protected
 
-    def eval_variable(tensor)
+    def eval_variable(tensor, child_context)
       raise "variable #{tensor.name} not initalized" if tensor.value.nil?
 
-      eval_tensor(tensor.value)
+      eval_tensor(tensor.value, child_context).tap do |val|
+        child_context[:returns] ||= {}
+        child_context[:returns][:vars] ||= []
+        child_context[:returns][:vars] << { name: tensor.name, val: val }
+      end
     end
 
-    def eval_operation(tensor)
+    def eval_operation(tensor, child_context)
       return @context[tensor.name.to_sym] if @context.has_key?(tensor.name.to_sym)
 
       a = resolve_placeholder(tensor.items[0]) if tensor.items
@@ -34,13 +41,13 @@ module TensorStream
 
       case(tensor.operation)
         when :add
-          process_vector_math_op(a, b, ->(a,b) { a + b })
+          process_vector_math_op(a, b, ->(a,b) { a + b }, child_context)
         when :sub
-          process_vector_math_op(a, b, ->(a,b) { a - b })
+          process_vector_math_op(a, b, ->(a,b) { a - b }, child_context)
         when :mul
-          process_vector_math_op(a, b, ->(a,b) { a * b })
+          process_vector_math_op(a, b, ->(a,b) { a * b }, child_context)
         when :exp
-          process_vector_math_op(a, b, ->(a,b) { a ** b })
+          process_vector_math_op(a, b, ->(a,b) { a ** b }, child_context)
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
@@ -53,17 +60,17 @@ module TensorStream
           
           TensorStream.constant(generate_vector(tensor.options[:shape], generator: generator ))
         when :flow_group
-          tensor.items.each do |item| eval(item) end
+          tensor.items.each do |item| eval(item, child_context) end
           nil
         when :assign
           assign = tensor.items[0] || tensor
-          assign.value = eval(tensor.items[1])
+          assign.value = eval(tensor.items[1], child_context)
           assign.value
         when :assign_add
-          tensor.items[0].value = eval(tensor.items[0].value + eval(tensor.items[1]))
+          tensor.items[0].value = eval(tensor.items[0].value + eval(tensor.items[1], child_context), child_context)
           tensor.items[0].value
         when :reduce_sum
-          val = eval(tensor.items[0])
+          val = eval(tensor.items[0], child_context)
           axis = tensor.options[:axis]
           keep_dims = tensor.options[:keepdims]
           res = if axis.kind_of?(Array)
@@ -73,7 +80,7 @@ module TensorStream
 
             val.flatten.reduce(:+)
           else
-            reduce_axis(axis, val, keep_dims)
+            reduce_axis(axis, val, keep_dims, child_context)
           end
           TensorStream.constant(res)
         when :zeros
@@ -83,13 +90,15 @@ module TensorStream
             TensorStream.constant(generate_vector(tensor.shape.shape, generator: ->() { 0.0 } ))
           end
         when :matmul
-          matrix_a = eval(a)
-          matrix_b = eval(b)
+          matrix_a = eval(a, child_context)
+          matrix_b = eval(b, child_context)
   
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradient_descent
+          
+          binding.pry
         when :div
-          process_vector_math_op(a, b, ->(a,b) { a/b })
+          process_vector_math_op(a, b, ->(a,b) { a/b }, child_context)
         else
           raise "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -97,16 +106,16 @@ module TensorStream
       end
     end
 
-    def eval_tensor(tensor)
+    def eval_tensor(tensor, child_context)
       return tensor unless tensor.kind_of?(Tensor)
       return @context[tensor.name] if @context.has_key?(tensor.name)
 
       if tensor.value.kind_of?(Array)
         tensor.value.collect do |item|
-          item.kind_of?(Tensor) ? eval(item) : item
+          item.kind_of?(Tensor) ? eval(item, child_context) : item
         end
       else
-        tensor.value.kind_of?(Tensor) ? eval(tensor.value) : tensor.value
+        tensor.value.kind_of?(Tensor) ? eval(tensor.value, child_context) : tensor.value
       end.tap do |result|
         @context[tensor.name] = result
       end
@@ -114,10 +123,10 @@ module TensorStream
 
     private
 
-    def process_vector_math_op(a, b, op)
+    def process_vector_math_op(a, b, op, child_context)
       # ruby scalar
       if a.shape.rank == 0
-        TensorStream.constant(op.(eval(a),eval(b)), dtype: a.dtype)
+        TensorStream.constant(op.(eval(a, child_context),eval(b, child_context)), dtype: a.dtype)
       elsif a.shape.rank > 0
         if b.kind_of?(Tensor) && b.shape.rank > 0
           TensorStream.constant(vector_op(a, b, op))
@@ -128,7 +137,7 @@ module TensorStream
       end
     end
 
-    def resolve_placeholder(placeholder)
+    def resolve_placeholder(placeholder, execution_context = {})
       var = if placeholder.kind_of?(Placeholder) 
         @context[placeholder.name.to_sym].tap do |c|
           raise "missing placeholder #{placeholder.name}" if c.nil?
@@ -137,13 +146,13 @@ module TensorStream
         placeholder
       end
 
-      var.kind_of?(Operation) ? eval(var) : var
+      var.kind_of?(Operation) ? eval(var, execution_context) : var
     end
 
-    def reduce_axis(axis, val,  keep_dims, op = ->(v) { v.kind_of?(Array) ? v.reduce(:+) : v })
-      val = eval(val)
+    def reduce_axis(axis, val,  keep_dims, child_context, op = ->(v) { v.kind_of?(Array) ? v.reduce(:+) : v })
+      val = eval(val, child_context)
       res = if axis.nil?
-        op.(val.flatten)
+        val.kind_of?(Array) ? op.(val.flatten) : val
       elsif axis == 0
         val.transpose.collect do |v|
           keep_dims ? [op.(v)] : op.(v)

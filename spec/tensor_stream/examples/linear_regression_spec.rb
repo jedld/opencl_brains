@@ -19,8 +19,8 @@ RSpec.describe "Performs a linear regression" do
     Y = TensorStream.placeholder("float")
 
     # Set model weights
-    W = TensorStream.Variable(rand, name="weight")
-    b = TensorStream.Variable(rand, name="bias")
+    W = TensorStream.Variable(rand, name: "weight")
+    b = TensorStream.Variable(rand, name: "bias")
 
     # Construct a linear model
     pred = TensorStream.add(TensorStream.multiply(X, W), b)
@@ -36,17 +36,17 @@ RSpec.describe "Performs a linear regression" do
 
     TensorStream.Session do |sess|
       sess.run(init)
-      (0..training_epochs).each do |epoch|
+      # (0..training_epochs).each do |epoch|
         train_X.zip(train_Y).each do |x,y|
           sess.run(optimizer, feed_dict: {X => x, Y => y})
         end
 
-        if (epoch+1) % display_step == 0
-          c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
-          puts("Epoch:", '%04d' % (epoch+1), "cost=",  \
-              "W=", sess.run(W), "b=", sess.run(b))
-        end
-      end
+        # if (epoch+1) % display_step == 0
+        #   c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
+        #   puts("Epoch:", '%04d' % (epoch+1), "cost=",  \
+        #       "W=", sess.run(W), "b=", sess.run(b))
+        # end
+      # end
     end
   end
 end

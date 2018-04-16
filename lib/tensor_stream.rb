@@ -1,5 +1,6 @@
 require "tensor_stream/version"
 require 'opencl_ruby_ffi'
+require 'deep_merge'
 require 'narray_ffi'
 require 'tensor_stream/evaluator/ruby_evaluator'
 require 'tensor_stream/graph_keys'
