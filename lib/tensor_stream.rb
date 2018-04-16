@@ -21,13 +21,17 @@ module TensorStream
     TensorStream::Graph.get_default_graph
   end
 
-  def self.Variable(value, options = {})
+  def self.Variable(value, dtype = :float32, options = {})
+    common_options= {
+      initializer: Operation.new(:assign, nil, value),
+      name: options[:name]
+    }
     if value.is_a?(String)
-      TensorStream::Variale.new(options[:dtype] || :string_ref, 0, [], value: value, name: options[:name])
+      TensorStream::Variable.new(dtype || :string, 0, [], common_options)
     elsif value.is_a?(Integer)
-      TensorStream::Variable.new(options[:dtype] || :int32_ref, 0, [], value: value, name: options[:name])
+      TensorStream::Variable.new(dtype || :int32, 0, [], common_options)
     elsif value.is_a?(Float)
-      TensorStream::Variable.new(options[:dtype] || :float32_ref, 0, [], value: value, name: options[:name])
+      TensorStream::Variable.new(dtype || :float32, 0, [], common_options)
     end
   end
 

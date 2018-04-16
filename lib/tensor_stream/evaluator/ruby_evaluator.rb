@@ -71,8 +71,9 @@ module TensorStream
           tensor.items.each do |item| eval(item) end
           nil
         when :assign
-          tensor.items[0].value = eval(tensor.items[1])
-          tensor.items[0].value
+          assign = tensor.items[0] || tensor
+          assign.value = eval(tensor.items[1])
+          assign.value
         when :assign_add
           tensor.items[0].value = eval(tensor.items[0].value + eval(tensor.items[1]))
           tensor.items[0].value
@@ -153,7 +154,11 @@ module TensorStream
     end
 
     def generate_vector(shape, dtype: :float32, generator: )
-      if shape.size > 1
+      if shape.is_a?(Integer)
+        shape.times.collect do
+          generator.()
+        end
+      elsif shape.size > 1
         shape[0].times.collect do
           generate_vector(shape[1..shape.size], generator: generator, dtype: dtype)
         end
@@ -163,10 +168,6 @@ module TensorStream
         end
       elsif shape.size == 0
         generator.()
-      elsif shape.is_a?(Integer)
-        shape.times.collect do
-          generator.()
-        end
       end
     end
   end
