@@ -41,13 +41,13 @@ module TensorStream
 
       case(tensor.operation)
         when :add
-          process_vector_math_op(a, b, ->(a,b) { a + b }, child_context)
+          process_vector_math_op(a, b, child_context, ->(a,b) { a + b })
         when :sub
-          process_vector_math_op(a, b, ->(a,b) { a - b }, child_context)
+          process_vector_math_op(a, b, child_context, ->(a,b) { a - b })
         when :mul
-          process_vector_math_op(a, b, ->(a,b) { a * b }, child_context)
+          process_vector_math_op(a, b, child_context, ->(a,b) { a * b })
         when :exp
-          process_vector_math_op(a, b, ->(a,b) { a ** b }, child_context)
+          process_vector_math_op(a, b, child_context, ->(a,b) { a ** b })
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
@@ -75,7 +75,7 @@ module TensorStream
           keep_dims = tensor.options[:keepdims]
           res = if axis.kind_of?(Array)
             axis.each do |x|
-              val = reduce_axis(x, val, keep_dims)
+              val = reduce_axis(x, val, keep_dims, child_context)
             end
 
             val.flatten.reduce(:+)
@@ -95,10 +95,9 @@ module TensorStream
   
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradient_descent
-          
-          binding.pry
+          fail "not implemented"
         when :div
-          process_vector_math_op(a, b, ->(a,b) { a/b }, child_context)
+          process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
         else
           raise "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -123,16 +122,16 @@ module TensorStream
 
     private
 
-    def process_vector_math_op(a, b, op, child_context)
+    def process_vector_math_op(a, b,  child_context, op)
       # ruby scalar
       if a.shape.rank == 0
         TensorStream.constant(op.(eval(a, child_context),eval(b, child_context)), dtype: a.dtype)
       elsif a.shape.rank > 0
         if b.kind_of?(Tensor) && b.shape.rank > 0
-          TensorStream.constant(vector_op(a, b, op))
+          TensorStream.constant(vector_op(a, b, child_context, op))
         else
           val = b.kind_of?(Tensor) ? b.value : b
-          TensorStream.constant(constant_op(a, val, op))
+          TensorStream.constant(constant_op(a, val, child_context, op))
         end
       end
     end
@@ -180,30 +179,31 @@ module TensorStream
       end
     end
 
-    def constant_op(vector, constant, op = ->(a,b) { a + b })
-      eval(vector).collect do |item|
+    def constant_op(vector, constant, child_context, op = ->(a,b) { a + b })
+      eval(vector, child_context).each_with_index.collect do |item, index|
+        c = constant.is_a?(Array) ? constant[index] : constant
         if item.is_a?(Array)
-          constant_op(item, constant, op)
+          constant_op(item, c, child_context, op)
         else
           if item.respond_to?(:value) 
-            op.(item.value, constant)
+            op.(item.value, c)
           else
-            op.(item, constant)
+            op.(item, c)
           end
         end
       end
     end
 
-    def vector_op(vector, vector2, op = ->(a,b) { a + b })
-      v_a = eval(vector)
-      v_b = eval(vector2)
+    def vector_op(vector, vector2, child_context, op = ->(a,b) { a + b })
+      v_a = eval(vector, child_context)
+      v_b = eval(vector2, child_context)
     
       v_a.each_with_index.collect do |item, index|
         if item.is_a?(Array)
-          constant_op(item, constant, op)
+          constant_op(item, v_b[index], child_context, op)
         else
           if item.respond_to?(:value) 
-            op.(item.value, v_b[index].value, op)
+            op.(item.value, v_b[index].value)
           else
             op.(item, v_b[index])
           end
@@ -211,9 +211,9 @@ module TensorStream
       end
     end
 
-    def vector_add(vector, vector2)
-      v_a = eval(vector)
-      v_b = eval(vector2)
+    def vector_add(vector, vector2, child_context)
+      v_a = eval(vector, child_context)
+      v_b = eval(vector2, child_context)
       
       v_a.each_with_index.collect do |item, index|
         if item.is_a?(Array)

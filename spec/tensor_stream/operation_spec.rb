@@ -55,4 +55,14 @@ RSpec.describe TensorStream::Operation do
       expect(TensorStream.reduce_sum(x, [0, 1]).eval).to eq(6)
     end
   end
+
+  context ".pow" do
+    it "Computes the power of tensor x to tensor y" do
+      x = TensorStream.constant([[2, 2], [3, 3]])
+      y = TensorStream.constant([[8, 16], [2, 3]])
+      p = TensorStream.pow(x, y)  # [[256, 65536], [9, 27]]
+      sess = TensorStream.Session
+      expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
+    end
+  end
 end
