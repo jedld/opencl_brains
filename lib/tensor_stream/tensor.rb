@@ -52,6 +52,8 @@ module TensorStream
           @value = options[:value].collect do |v|
             TensorStream.constant(v, dtype: data_type)
           end
+        elsif shape.size > 0
+          @value = reshape(options[:value], shape.reverse.dup)
         else
           @value = options[:value]
         end
@@ -117,6 +119,10 @@ module TensorStream
       TensorStream::Operation.new(:sub, self, operand)
     end
 
+    def -@
+      TensorStream::Operation.new(:negate, self, nil)
+    end
+
     def collect(&block)
       @value.collect(&block)
     end
@@ -146,15 +152,41 @@ module TensorStream
       Session.default_session.run(self, options)
     end
 
+    def to_h
+      {
+        name: @name,
+        value: hashify_tensor(@value),
+        dtype: @data_type,
+        shape: @shape,
+        const: !!is_const,
+      }
+    end
+
     protected
 
+    def hashify_tensor(tensor)
+      if tensor.kind_of?(Tensor) 
+        tensor.to_h
+      elsif tensor.kind_of?(Array)
+        tensor.collect do |t| hashify_tensor(t) end
+      else
+        tensor
+      end
+    end
+
     def reshape(arr, shape)
-      return arr if shape.size < 2
-
-      slice = shape.shift
-
-      arr.each_slice(slice).collect do |s|
-        reshape(s, shape)
+      if arr.kind_of?(Array)
+        return arr if shape.size < 2
+        slice = shape.shift
+        arr.each_slice(slice).collect do |s|
+          reshape(s, shape)
+        end
+      else
+        return arr if shape.size < 1
+        slice = shape.shift
+        slice.times.collect do |s|
+          reshape(arr, shape.dup)
+        end
       end
     end
 

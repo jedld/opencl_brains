@@ -63,6 +63,47 @@ RSpec.describe TensorStream::Operation do
       p = TensorStream.pow(x, y)  # [[256, 65536], [9, 27]]
       sess = TensorStream.Session
       expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
+
+      p = TensorStream.pow(x, 2)
+      expect(sess.run(p)).to eq([[4, 4], [9, 9]])
+    end
+  end
+
+  context ".negate" do
+    it "computes the negative of a tensor" do
+      x = TensorStream.constant(0.1)
+      y = TensorStream.constant([[1.1, 16.1], [2.1, 3.0]])
+      z = -TensorStream.constant(4.1)
+      x_negate = TensorStream.negate(x)
+      y_negate = TensorStream.negate(y)
+      sess = TensorStream.Session
+      expect(sess.run(x_negate)).to eq(-0.1)
+      expect(sess.run(y_negate)).to eq([[-1.1, -16.1], [-2.1, -3.0]])
+      expect(sess.run(z)).to eq(-4.1)
+    end
+  end
+
+  context ".sin" do
+    it "Computes for the sine of a tensor" do
+      x = TensorStream.constant(0.1)
+      y = TensorStream.constant([[1.1, 16.1], [2.1, 3.0]])
+      x_sin = TensorStream.sin(x)
+      y_sin = TensorStream.sin(y)
+
+      sess = TensorStream.Session
+      expect(sess.run(x_sin)).to eq(0.09983341664682815)
+      expect(sess.run(y_sin)).to eq([[0.8912073600614354, -0.3820714171840091], [0.8632093666488738, 0.1411200080598672]])
+    end
+  end
+
+  context ".derivative" do
+    it "Creates a derivative graph for a computation" do
+      x = TensorStream.constant(2)
+      y = TensorStream.constant(3)
+      p = TensorStream.pow(x, y)  # [[256, 65536], [9, 27]]
+      derivative_function = TensorStream::Operation.derivative(p)
+      expect(p.eval).to eq(8)
+      expect(derivative_function.eval).to eq(12)
     end
   end
 end

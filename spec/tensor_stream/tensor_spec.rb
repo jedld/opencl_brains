@@ -18,6 +18,7 @@ RSpec.describe TensorStream::Tensor do
       d = TensorStream.Variable(451, dtype: TensorStream::Types.int16)
       e = TensorStream.Variable(451.12)
       total = a + b + c
+      f = -e
       # expect(TensorStream::Graph.get_default_graph.nodes.keys).to eq([])
       expect(a.to_s).to eq("Const:0")
       expect(b.to_s).to eq("Const_1:0")
@@ -26,6 +27,7 @@ RSpec.describe TensorStream::Tensor do
       expect(d.to_s).to eq("Variable:0")
       expect(e.to_s).to eq("Variable_2:0")
       expect(a.shape.to_s).to eq("TensorShape([])")
+      expect(f.to_s).to eq("negate_4:0")
     end
 
     it "automatically adjusts based on shape" do
@@ -36,6 +38,11 @@ RSpec.describe TensorStream::Tensor do
          [3.0, 4.0],
          [5.0, 6.0]
         ]
+      )
+
+      c = TensorStream.constant(0, shape: [2,2])
+      expect(c.eval).to eq(
+        [[0.0, 0.0], [0.0, 0.0]]
       )
     end
 

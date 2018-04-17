@@ -30,6 +30,11 @@ module TensorStream
       Operation.new(:assign_add, self, value)
     end
 
+
+    def assign_sub(value)
+      Operation.new(:assign_sub, self, value)
+    end
+
     def self.variables_initializer(collection)
       TensorStream.group(TensorStream.get_default_graph.get_collection(collection).map(&:initializer))
     end

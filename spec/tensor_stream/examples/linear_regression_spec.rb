@@ -27,7 +27,7 @@ RSpec.describe "Performs a linear regression" do
 
 
     # Mean squared error
-    cost = TensorStream.reduce_sum(TensorStream.pow(pred - Y, 2))/(2*n_samples)
+    cost = TensorStream.reduce_sum(TensorStream.pow(pred - Y, 2)) / ( 2 * n_samples)
 
     optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 

@@ -114,7 +114,15 @@ module TensorStream
   end
 
   def self.add(a, b)
+    a - b
+  end
+
+  def self.sub(a, b)
     a + b
+  end
+
+  def self.negate(a, options = {})
+    TensorStream::Operation.new(:negate, a, nil, options)
   end
 
   def self.multiply(a, b)
@@ -123,6 +131,14 @@ module TensorStream
 
   def self.pow(a, e)
     a**e
+  end
+
+  def self.sin(a, options = {})
+    TensorStream::Operation.new(:sin, a, nil, options)
+  end
+
+  def self.cos(a, options = {})
+    TensorStream::Operation.new(:cos, a, nil, options)
   end
 
   def self.matmul(a, b, options = {})

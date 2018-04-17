@@ -40,6 +40,8 @@ module TensorStream
       b = resolve_placeholder(tensor.items[1]) if tensor.items
 
       case(tensor.operation)
+        when :negate
+          process_function_op(a, child_context, ->(a,b) { -a } )
         when :add
           process_vector_math_op(a, b, child_context, ->(a,b) { a + b })
         when :sub
@@ -48,6 +50,10 @@ module TensorStream
           process_vector_math_op(a, b, child_context, ->(a,b) { a * b })
         when :exp
           process_vector_math_op(a, b, child_context, ->(a,b) { a ** b })
+        when :sin
+          process_function_op(a, child_context, ->(a,b) { Math.sin(a) } )
+        when :cos
+          process_function_op(a, child_context, ->(a,b) { Math.cos(a) } )
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
@@ -95,7 +101,7 @@ module TensorStream
   
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradient_descent
-          fail "not implemented"
+          derivative_builder(tensor.items[0], tensor.learning_rate)
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
         else
@@ -122,6 +128,18 @@ module TensorStream
 
     private
 
+    def derivative_builder(tensor, learning_rate)
+      if tensor.kind_of?(Operation)
+        op_val = @context[tensor.name]
+        context = {}
+        error = eval(tensor, context)
+        d = derivative(tensor, op_val) * error.eval
+        derivative_builder(d)
+      elsif tensor.kind_of?(Variable)
+        tensor.assign_sub(error * learning_rate)
+      end
+    end
+
     def process_vector_math_op(a, b,  child_context, op)
       # ruby scalar
       if a.shape.rank == 0
@@ -133,6 +151,15 @@ module TensorStream
           val = b.kind_of?(Tensor) ? b.value : b
           TensorStream.constant(constant_op(a, val, child_context, op))
         end
+      end
+    end
+
+    def process_function_op(a, child_context, op)
+      # ruby scalar
+      if a.shape.rank == 0
+        TensorStream.constant(op.(eval(a, child_context), 0), dtype: a.dtype)
+      elsif a.shape.rank > 0
+          TensorStream.constant(constant_op(a, 0, child_context, op))
       end
     end
 
