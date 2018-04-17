@@ -98,12 +98,18 @@ RSpec.describe TensorStream::Operation do
 
   context ".derivative" do
     it "Creates a derivative graph for a computation" do
-      x = TensorStream.constant(2)
-      y = TensorStream.constant(3)
-      p = TensorStream.pow(x, y)  # [[256, 65536], [9, 27]]
+      x = TensorStream.placeholder(TensorStream::Types.float32)
+      p = TensorStream.pow(x, 3) 
       derivative_function = TensorStream::Operation.derivative(p)
-      expect(p.eval).to eq(8)
-      expect(derivative_function.eval).to eq(12)
+      expect(p.eval(feed_dict: { x => 2})).to eq(8)
+      expect(derivative_function.eval(feed_dict: { x => 2})).to eq(12)
+
+
+      # f(x) = (sin x) ^ 3
+      # dx = 3(sin x)^2 * cos x
+      y = TensorStream.sin(x) ** 3
+      derivative_function_y = TensorStream::Operation.derivative(y)
+      expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
     end
   end
 end

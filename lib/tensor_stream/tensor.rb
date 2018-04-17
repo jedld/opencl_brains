@@ -107,8 +107,8 @@ module TensorStream
       TensorStream::Operation.new(:mul, self,operand)
     end
 
-    def **(e)
-      TensorStream::Operation.new(:exp, self, e)
+    def **(operand)
+      TensorStream::Operation.new(:exp, self, auto_wrap(operand))
     end
 
     def /(operand)
