@@ -167,4 +167,21 @@ module TensorStream
 
     [dtype, rank, value[0], value.size]
   end
+
+
+  def self.val_to_dtype(value, rank = 0)
+    dtype = if value.is_a?(String)
+      :string
+    elsif value.is_a?(Float)
+      :float32
+    elsif value.is_a?(Integer)
+      :int32
+    elsif value.is_a?(Array)
+      rank += 1
+      :array
+    else
+      :float32
+    end
+    dtype
+  end
 end

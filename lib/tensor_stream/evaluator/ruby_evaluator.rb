@@ -1,19 +1,27 @@
 require "tensor_stream/evaluator/operation_helpers/random_gaussian"
 
 module TensorStream
+  class FullEvalNotPossible < StandardError
+  end
   ## PURE ruby evaluator used for testing and development
   class RubyEvaluator
+    attr_accessor :retain
     def initialize(session, context)
       @session = session
       @context = context
+      @retain = context[:retain] || []
     end
 
     def eval(tensor, execution_context)
+      return tensor if retain.include?(tensor) # if var is in retain don't eval to value
+
       child_context = execution_context.dup
       res = if tensor.kind_of?(Operation)
         eval_operation(tensor, child_context)
       elsif tensor.kind_of?(Variable)
         eval_variable(tensor, child_context)
+      elsif tensor.kind_of?(Placeholder)
+        resolve_placeholder(tensor, child_context)
       else
         eval_tensor(tensor, child_context)
       end
@@ -23,9 +31,9 @@ module TensorStream
     
     protected
 
+
     def eval_variable(tensor, child_context)
       raise "variable #{tensor.name} not initalized" if tensor.value.nil?
-
       eval_tensor(tensor.value, child_context).tap do |val|
         child_context[:returns] ||= {}
         child_context[:returns][:vars] ||= []
@@ -36,24 +44,44 @@ module TensorStream
     def eval_operation(tensor, child_context)
       return @context[tensor.name.to_sym] if @context.has_key?(tensor.name.to_sym)
 
-      a = resolve_placeholder(tensor.items[0]) if tensor.items
-      b = resolve_placeholder(tensor.items[1]) if tensor.items
+      a = resolve_placeholder(tensor.items[0], child_context) if tensor.items
+      b = resolve_placeholder(tensor.items[1], child_context) if tensor.items
 
       case(tensor.operation)
         when :negate
           process_function_op(a, child_context, ->(a,b) { -a } )
         when :add
-          process_vector_math_op(a, b, child_context, ->(a,b) { a + b })
+          begin
+            process_vector_math_op(a, b, child_context, ->(a,b) { a + b })
+          rescue TensorStream::FullEvalNotPossible => e
+            a + b
+          end
         when :sub
           process_vector_math_op(a, b, child_context, ->(a,b) { a - b })
         when :mul
-          process_vector_math_op(a, b, child_context, ->(a,b) { a * b })
+          begin
+            process_vector_math_op(a, b, child_context, ->(a,b) { a * b })
+          rescue TensorStream::FullEvalNotPossible => e
+            a * b
+          end
         when :exp
-          process_vector_math_op(a, b, child_context, ->(a,b) { a ** b })
+          begin
+            process_vector_math_op(a, b, child_context, ->(a,b) { a ** b })
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.pow(a,b)
+          end
         when :sin
-          process_function_op(a, child_context, ->(a,b) { Math.sin(a) } )
+          begin
+            process_function_op(a, child_context, ->(a,b) { Math.sin(a) } )
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.sin(a)
+          end
         when :cos
-          process_function_op(a, child_context, ->(a,b) { Math.cos(a) } )
+          begin
+            process_function_op(a, child_context, ->(a,b) { Math.cos(a) } )
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.cos(a)
+          end
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)
@@ -101,7 +129,8 @@ module TensorStream
   
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradient_descent
-          derivative_builder(tensor.items[0], tensor.learning_rate)
+          loss_function = tensor.items[0]
+          derivative_builder(loss_function, tensor.learning_rate)
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
         else
@@ -128,45 +157,62 @@ module TensorStream
 
     private
 
+    def complete_eval(tensor, context)
+      begin
+        tensor = eval(tensor, context)
+      end while tensor.kind_of?(Tensor)
+      tensor
+    end
+
     def derivative_builder(tensor, learning_rate)
       if tensor.kind_of?(Operation)
         op_val = @context[tensor.name]
         context = {}
-        error = eval(tensor, context)
-        d = derivative(tensor, op_val) * error.eval
-        derivative_builder(d)
+        error = complete_eval(tensor, context)
+        derivative_function = Operation.derivative(tensor)
       elsif tensor.kind_of?(Variable)
         tensor.assign_sub(error * learning_rate)
       end
     end
 
     def process_vector_math_op(a, b,  child_context, op)
+      eval_a = eval(a, child_context) unless a.nil?
+      eval_b = eval(b, child_context) unless b.nil?
+
+      raise FullEvalNotPossible.new if eval_a.kind_of?(Tensor) || eval_b.kind_of?(Tensor)
       # ruby scalar
       if a.shape.rank == 0
-        TensorStream.constant(op.(eval(a, child_context),eval(b, child_context)), dtype: a.dtype)
+        TensorStream.constant(op.(eval_a,eval_b), dtype: a.dtype)
       elsif a.shape.rank > 0
-        if b.kind_of?(Tensor) && b.shape.rank > 0
-          TensorStream.constant(vector_op(a, b, child_context, op))
+        if eval_b.kind_of?(Tensor) && eval_b.shape.rank > 0
+          TensorStream.constant(vector_op(eval_a, eval_b, child_context, op))
         else
-          val = b.kind_of?(Tensor) ? b.value : b
-          TensorStream.constant(constant_op(a, val, child_context, op))
+          val = complete_eval(b, child_context)
+          TensorStream.constant(constant_op(eval_a, val, child_context, op))
         end
       end
     end
 
     def process_function_op(a, child_context, op)
       # ruby scalar
-      if a.shape.rank == 0
-        TensorStream.constant(op.(eval(a, child_context), 0), dtype: a.dtype)
+      if !a.kind_of?(Tensor) || a.shape.rank == 0
+        v = eval(a, child_context)
+        raise FullEvalNotPossible.new if v.is_a?(Tensor) && !v.is_const
+
+        TensorStream.constant(op.(v, 0), dtype: TensorStream.val_to_dtype(v))
       elsif a.shape.rank > 0
           TensorStream.constant(constant_op(a, 0, child_context, op))
       end
     end
 
     def resolve_placeholder(placeholder, execution_context = {})
+      return placeholder if retain.include?(placeholder)
+
       var = if placeholder.kind_of?(Placeholder) 
         @context[placeholder.name.to_sym].tap do |c|
-          raise "missing placeholder #{placeholder.name}" if c.nil?
+          if c.nil?
+            raise "missing placeholder #{placeholder.name}" 
+          end
         end
       else
         placeholder
@@ -207,7 +253,12 @@ module TensorStream
     end
 
     def constant_op(vector, constant, child_context, op = ->(a,b) { a + b })
-      eval(vector, child_context).each_with_index.collect do |item, index|
+      eval_vector = eval(vector, child_context)
+      constant = eval(constant, child_context)
+
+      raise FullEvalNotPossible.new if eval_vector.kind_of?(Tensor) || constant.kind_of?(Tensor)
+
+      eval_vector.each_with_index.collect do |item, index|
         c = constant.is_a?(Array) ? constant[index] : constant
         if item.is_a?(Array)
           constant_op(item, c, child_context, op)

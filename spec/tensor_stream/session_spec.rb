@@ -6,6 +6,7 @@ RSpec.describe TensorStream::Session do
   before(:each) do
     TensorStream::Tensor.reset_counters
     TensorStream::Operation.reset_counters
+    TensorStream::Graph.create_default
   end
 
   context "#run" do
@@ -49,6 +50,17 @@ RSpec.describe TensorStream::Session do
       sess = TensorStream.Session
       expect(sess.run(z, feed_dict: { x =>  3, y => 4.5})).to eq(7.5)
       expect(sess.run(z, feed_dict: { x => [1, 3], y=> [2, 4]})).to eq([3, 7])
+    end
+
+    it "evaluate all while retaining some variables" do
+      session = TensorStream::Session.default_session
+      x = TensorStream.Variable(1.0, :float32)
+      y = TensorStream.Variable(2.0, :float32)
+
+      expression = TensorStream.sin(x) + TensorStream.cos(y)
+      session.run(TensorStream.global_variables_initializer)
+      partial_eval = session.run(expression, retain: [x])
+      expect(partial_eval.to_math).to eq("(sin(Variable:0) + -0.4161468365471424)")
     end
   end
 end

@@ -162,6 +162,14 @@ module TensorStream
       }
     end
 
+    def to_math
+      is_const ? @value : @name
+    end
+
+    def auto_math(tensor)
+      tensor.kind_of?(Tensor) ? tensor.to_math : tensor
+    end
+
     protected
 
     def hashify_tensor(tensor)

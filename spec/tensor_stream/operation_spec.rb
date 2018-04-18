@@ -6,6 +6,7 @@ RSpec.describe TensorStream::Operation do
   before(:each) do
     TensorStream::Tensor.reset_counters
     TensorStream::Operation.reset_counters
+    TensorStream::Graph.create_default
     srand(1234)
   end
 
@@ -103,6 +104,11 @@ RSpec.describe TensorStream::Operation do
       derivative_function = TensorStream::Operation.derivative(p)
       expect(p.eval(feed_dict: { x => 2})).to eq(8)
       expect(derivative_function.eval(feed_dict: { x => 2})).to eq(12)
+      sess = TensorStream.Session
+      retained = sess.run(p, retain: [x])
+      retained_derivative_function = TensorStream::Operation.derivative(retained)
+      retained_simplified = sess.run(retained_derivative_function, retain: [x])
+      expect(retained_simplified.to_math).to eq("(3 * (Placeholder:^2))")
 
 
       # f(x) = (sin x) ^ 3
@@ -110,6 +116,13 @@ RSpec.describe TensorStream::Operation do
       y = TensorStream.sin(x) ** 3
       derivative_function_y = TensorStream::Operation.derivative(y)
       expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
+    end
+  end
+
+  context "combination of functions" do
+    it "add two operation together" do
+      y = TensorStream.sin(1) + TensorStream.sin(2)
+      expect(y.eval).to eq(1.7507684116335782)
     end
   end
 end

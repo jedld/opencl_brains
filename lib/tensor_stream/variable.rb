@@ -1,5 +1,6 @@
 module TensorStream
   class Variable < Tensor
+    attr_accessor :trainable
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
       @rank = rank
@@ -10,12 +11,17 @@ module TensorStream
       if options[:initializer]
         @initalizer_tensor = options[:initializer]
       end
+      @trainable = options.fetch(:trainable, true)
       @graph.add_variable(self, options)
     end
 
     def initializer
       @initalizer_tensor.shape = @shape
       assign(@initalizer_tensor)
+    end
+
+    def trainable?
+      @trainable
     end
 
     def assign(value)
