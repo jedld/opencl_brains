@@ -23,8 +23,7 @@ RSpec.describe "Performs a linear regression" do
     b = TensorStream.Variable(rand, name: "bias")
 
     # Construct a linear model
-    pred = TensorStream.add(TensorStream.multiply(X, W), b)
-
+    pred = X * W + b
 
     # Mean squared error
     cost = TensorStream.reduce_sum(TensorStream.pow(pred - Y, 2)) / ( 2 * n_samples)

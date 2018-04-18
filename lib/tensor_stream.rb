@@ -49,6 +49,17 @@ module TensorStream
     TensorStream::Layers
   end
 
+  def self.gradients(ys, xs, grad_ys: nil,
+    name: 'gradients',
+    colocate_gradients_with_ops: false,
+    gate_gradients: false,
+    aggregation_method: nil,
+    stop_gradients: nil
+    )
+    options = { }
+    TensorStream::Operation.new(:gradients, ys, xs, options)
+  end
+
   def self.constant(value, options = {})
     shared_options = { const: true, value: value, name: options[:name] }
     if value.is_a?(Float)
