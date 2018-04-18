@@ -28,9 +28,9 @@ module TensorStream
         end
       end if options[:feed_dict]
       evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]))
-      
+
       execution_context = {}
-      result = args.collect { |e| evaluator.eval(evaluator.eval(e, execution_context), execution_context) }
+      result = args.collect { |e| evaluator.complete_eval(e, execution_context) }
       @last_session_context = context
       result.size == 1 ? result.first : result
     end

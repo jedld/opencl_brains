@@ -17,6 +17,7 @@ require 'tensor_stream/trainer'
 # require 'tensor_stream/libraries/layers'
 require "tensor_stream/gemm/gemm"
 require "tensor_stream/sigmoid/sigmoid"
+require "tensor_stream/monkey_patches/integer"
 
 module TensorStream
   def self.get_default_graph

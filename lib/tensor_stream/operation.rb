@@ -23,7 +23,9 @@ module TensorStream
       @@op_counter = 0
     end
 
-    def self.derivative(tensor)
+    def self.derivative(tensor, with_respect: [], stop_gradients: [])
+      TensorStream.constant(0) if stop_gradients.include?(tensor)
+
       if tensor.kind_of?(Operation)
         case tensor.operation
           when :sin

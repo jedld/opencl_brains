@@ -28,6 +28,15 @@ module TensorStream
       execution_context.deep_merge!(returns: child_context[:returns])
       res
     end
+
+    def complete_eval(tensor, context)
+      begin
+        old_tensor = tensor
+        tensor = eval(tensor, context)
+        return tensor if old_tensor == tensor
+      end while tensor.kind_of?(Tensor)
+      tensor
+    end
     
     protected
 
@@ -128,9 +137,10 @@ module TensorStream
           matrix_b = eval(b, child_context)
   
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
-        when :gradient_descent
-          loss_function = tensor.items[0]
-          derivative_builder(loss_function, tensor.learning_rate)
+        when :gradients
+          b.collect do |xs|
+            Operation.derivative(a)
+          end
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
         else
@@ -157,13 +167,6 @@ module TensorStream
 
     private
 
-    def complete_eval(tensor, context)
-      begin
-        tensor = eval(tensor, context)
-      end while tensor.kind_of?(Tensor)
-      tensor
-    end
-
     def derivative_builder(tensor, learning_rate)
       if tensor.kind_of?(Operation)
         op_val = @context[tensor.name]
@@ -176,21 +179,28 @@ module TensorStream
     end
 
     def process_vector_math_op(a, b,  child_context, op)
-      eval_a = eval(a, child_context) unless a.nil?
-      eval_b = eval(b, child_context) unless b.nil?
+      eval_a = complete_eval(a, child_context) unless a.nil?
+      eval_b = complete_eval(b, child_context) unless b.nil?
 
       raise FullEvalNotPossible.new if eval_a.kind_of?(Tensor) || eval_b.kind_of?(Tensor)
+
       # ruby scalar
-      if a.shape.rank == 0
+      if get_rank(eval_a) == 0
         TensorStream.constant(op.(eval_a,eval_b), dtype: a.dtype)
-      elsif a.shape.rank > 0
-        if eval_b.kind_of?(Tensor) && eval_b.shape.rank > 0
+      elsif get_rank(eval_a) > 0
+        if eval_b.kind_of?(Tensor) && get_rank(eval_b) > 0
           TensorStream.constant(vector_op(eval_a, eval_b, child_context, op))
         else
-          val = complete_eval(b, child_context)
-          TensorStream.constant(constant_op(eval_a, val, child_context, op))
+          TensorStream.constant(constant_op(eval_a, eval_b, child_context, op))
         end
       end
+    end
+
+    def get_rank(value, rank = 0)
+      return rank unless value.kind_of?(Array)
+      return rank + 1 if value.size == 0
+
+      get_rank(value[0], rank + 1)
     end
 
     def process_function_op(a, child_context, op)
@@ -218,7 +228,7 @@ module TensorStream
         placeholder
       end
 
-      var.kind_of?(Operation) ? eval(var, execution_context) : var
+      var
     end
 
     def reduce_axis(axis, val,  keep_dims, child_context, op = ->(v) { v.kind_of?(Array) ? v.reduce(:+) : v })
