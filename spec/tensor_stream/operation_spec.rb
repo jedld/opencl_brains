@@ -126,6 +126,7 @@ RSpec.describe TensorStream::Operation do
       b = a * 2
       g = TensorStream.gradients(a + b, [a, b], stop_gradients: [a, b])
       h = TensorStream.gradients(a + b, [a, b])
+      binding.pry
       expect(g.eval).to eq([1.0, 1.0])
       expect(h.eval).to eq([3.0, 1.0])
     end

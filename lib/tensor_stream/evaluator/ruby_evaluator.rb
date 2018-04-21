@@ -13,6 +13,10 @@ module TensorStream
     end
 
     def eval(tensor, execution_context)
+      if tensor.kind_of?(Array)
+        return tensor.map { |t| eval(t, execution_context) }
+      end
+
       return tensor if retain.include?(tensor) # if var is in retain don't eval to value
 
       child_context = execution_context.dup
@@ -33,6 +37,11 @@ module TensorStream
       begin
         old_tensor = tensor
         tensor = eval(tensor, context)
+
+        if tensor.kind_of?(Array)
+          tensor = tensor.map { |t| complete_eval(t, context) }
+        end
+
         return tensor if old_tensor == tensor
       end while tensor.kind_of?(Tensor)
       tensor
@@ -139,7 +148,7 @@ module TensorStream
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradients
           b.collect do |xs|
-            Operation.derivative(a)
+            Operation.derivative(a, stop_gradients: tensor.options[:stop_gradients])
           end
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })

@@ -57,7 +57,7 @@ module TensorStream
     aggregation_method: nil,
     stop_gradients: nil
     )
-    options = { }
+    options = { stop_gradients: stop_gradients}
     TensorStream::Operation.new(:gradients, ys, xs, options)
   end
 

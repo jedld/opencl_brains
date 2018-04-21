@@ -23,27 +23,27 @@ module TensorStream
       @@op_counter = 0
     end
 
-    def self.derivative(tensor, with_respect: [], stop_gradients: [])
-      TensorStream.constant(0) if stop_gradients.include?(tensor)
+    def self.derivative(tensor, options = {})
+      return TensorStream.constant(1) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
 
       if tensor.kind_of?(Operation)
         case tensor.operation
           when :sin
-            Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0])
+            Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0], options)
           when :cos
-            -Operation.new(:sin, tensor.items[0], nil) * derivative(tensor.items[0])
+            -Operation.new(:sin, tensor.items[0], nil) * derivative(tensor.items[0], options)
           when :add
-            derivative(tensor.items[0]) + derivative(tensor.items[1])
+            derivative(tensor.items[0]) + derivative(tensor.items[1], options)
           when :sub
-            derivative(tensor.items[0]) - derivative(tensor.items[1])
+            derivative(tensor.items[0]) - derivative(tensor.items[1], options)
           when :exp
-            tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0])
+            tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0], options)
           when :div
             # apply the quotient rule
-            ( derivative(tensor.items[0]) * tensor.items[1] - tensor.items[0] * derivative(tensor.items[1]) ) / tensor.items[1]**2
+            ( derivative(tensor.items[0]) * tensor.items[1] - tensor.items[0] * derivative(tensor.items[1], options) ) / tensor.items[1]**2
           when :mul
             # apply the product rule
-            derivative(tensor.items[0]) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1])
+            derivative(tensor.items[0]) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1], options)
           when :reduce_sum
             derivative(tensor.items[0])
           else
@@ -88,6 +88,8 @@ module TensorStream
         end
       when :reduce_sum
         "reduce_sum(|#{auto_math(items[0])} * #{auto_math(items[1])}|)"
+      when :gradients
+        "gradient(#{auto_math(items[0])})"
       else
         fail "math form for #{operation}"
       end
