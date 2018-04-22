@@ -11,10 +11,10 @@ module TensorStream
         trainable_vars = TensorStream::Graph.get_default_graph.get_collection(GraphKeys::GLOBAL_VARIABLES).select(&:trainable?)
         operations = []
 
-        trainable_vars.collect do |v|
-          Operation.derivative(cost.eval(retain: [v]))
+        derivatives = TensorStream.gradients(cost, trainable_vars)
+        trainable_vars.each_with_index.collect do |var, index|
+          var.assign_sub(derivatives[index] * @learning_rate)
         end
-        operations
       end
     end
   end

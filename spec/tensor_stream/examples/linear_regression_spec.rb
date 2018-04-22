@@ -5,7 +5,7 @@ require 'matrix'
 RSpec.describe "Performs a linear regression" do
   it "performs a linear regression" do
     learning_rate = 0.01
-    training_epochs = 1000
+    training_epochs = 2
     display_step = 50
 
     train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
@@ -35,17 +35,17 @@ RSpec.describe "Performs a linear regression" do
 
     TensorStream.Session do |sess|
       sess.run(init)
-      # (0..training_epochs).each do |epoch|
+      (0..training_epochs).each do |epoch|
         train_X.zip(train_Y).each do |x,y|
           sess.run(optimizer, feed_dict: {X => x, Y => y})
         end
 
-        # if (epoch+1) % display_step == 0
-        #   c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
-        #   puts("Epoch:", '%04d' % (epoch+1), "cost=",  \
-        #       "W=", sess.run(W), "b=", sess.run(b))
-        # end
-      # end
+        if (epoch+1) % display_step == 0
+          c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
+          puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
+              "W=", sess.run(W), "b=", sess.run(b))
+        end
+      end
     end
   end
 end

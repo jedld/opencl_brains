@@ -101,7 +101,7 @@ RSpec.describe TensorStream::Operation do
     it "Creates a derivative graph for a computation" do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       p = TensorStream.pow(x, 3) 
-      binding.pry
+
       derivative_function = TensorStream::Operation.derivative(p)
       expect(p.eval(feed_dict: { x => 2})).to eq(8)
       expect(derivative_function.eval(feed_dict: { x => 2})).to eq(12)
@@ -126,9 +126,18 @@ RSpec.describe TensorStream::Operation do
       b = a * 2
       g = TensorStream.gradients(a + b, [a, b], stop_gradients: [a, b])
       h = TensorStream.gradients(a + b, [a, b])
-  
+
       expect(g.eval).to eq([1.0, 1.0])
       expect(h.eval).to eq([3.0, 1.0])
+    end
+
+    it "computes gradient of sin" do
+      data = TensorStream.placeholder(TensorStream.float32)
+      var = TensorStream.constant(1.0)              # Must be a tf.float32 or tf.float64 variable.
+      loss = TensorStream.sin(var)  # some_function_of() returns a `Tensor`.
+      var_grad = TensorStream.gradients(loss, [var])[0]
+
+      expect(var_grad.eval).to eq(0.5403023058681398)
     end
   end
 

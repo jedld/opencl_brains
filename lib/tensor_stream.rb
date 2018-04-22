@@ -20,6 +20,10 @@ require "tensor_stream/sigmoid/sigmoid"
 require "tensor_stream/monkey_patches/integer"
 
 module TensorStream
+  def self.float32
+    Types.float32
+  end
+
   def self.get_default_graph
     TensorStream::Graph.get_default_graph
   end
@@ -147,11 +151,13 @@ module TensorStream
 
   def self.sin(a, options = {})
     options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
     TensorStream::Operation.new(:sin, a, nil, options)
   end
 
   def self.cos(a, options = {})
     options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
     TensorStream::Operation.new(:cos, a, nil, options)
   end
 
@@ -164,6 +170,12 @@ module TensorStream
   end
 
   private
+
+  def self.check_allowed_types(t, types)
+    return t unless t.kind_of?(Tensor)
+
+    fail "Parameter data type passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
+  end
 
   def self.dtype_eval(dtype, rank, value)
     dtype = Tensor.detect_type(value[0])

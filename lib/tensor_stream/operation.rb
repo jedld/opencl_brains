@@ -29,7 +29,7 @@ module TensorStream
     def self.derivative(tensor, dx, options = {})
       return TensorStream.constant(1, dtype: tensor.data_type) if tensor == dx
       return TensorStream.constant(0, dtype: tensor.data_type) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
-
+  
       if tensor.kind_of?(Operation)
         case tensor.operation
           when :sin
@@ -74,6 +74,12 @@ module TensorStream
 
     def to_math
       case operation
+      when :slice
+        "#{auto_math(items[0])}[#{items[1]}]"
+      when :assign_sub
+        "(#{items[0] ? items[0].name : "self"} -= #{auto_math(items[1])})"
+      when :assign_add
+        "(#{items[0] ? items[0].name : "self"} += #{auto_math(items[1])})"
       when :assign
         "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1])})"
       when :sin

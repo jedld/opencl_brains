@@ -66,8 +66,13 @@ module TensorStream
       b = resolve_placeholder(tensor.items[1], child_context) if tensor.items
 
       case(tensor.operation)
+        when :slice
+          f = eval(a, child_context)
+          index = eval(b, child_context)
+
+          f[index]
         when :negate
-          process_function_op(a, child_context, ->(a,b) { -a } )
+          process_vector_math_op(a, nil, child_context, ->(a,b) { -a } )
         when :add
           begin
             process_vector_math_op(a, b, child_context, ->(a,b) { a + b })
@@ -119,8 +124,11 @@ module TensorStream
           assign.value = eval(tensor.items[1], child_context)
           assign.value
         when :assign_add
-          tensor.items[0].value = eval(tensor.items[0].value + eval(tensor.items[1], child_context), child_context)
+          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a + b })
           tensor.items[0].value
+        when :assign_sub
+          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
+          tensor.items[0].value          
         when :reduce_sum
           val = eval(tensor.items[0], child_context)
           axis = tensor.options[:axis]

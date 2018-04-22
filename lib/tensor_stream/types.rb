@@ -1,7 +1,7 @@
 require 'ostruct'
 
 module TensorStream
-  class Types
+  module Types
     def self.int16
       :int16
     end
