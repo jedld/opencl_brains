@@ -32,6 +32,8 @@ module TensorStream
   
       if tensor.kind_of?(Operation)
         case tensor.operation
+          when :stop_gradient
+            return TensorStream.constant(0, dtype: tensor.data_type)
           when :tanh
             TensorStream.constant(1, dtype: tensor.data_type) - (Operation.new(:tanh, tensor.items[0], nil) ** 2)
           when :tan
@@ -110,6 +112,8 @@ module TensorStream
         "reduce_sum(|#{auto_math(items[0])} * #{auto_math(items[1])}|)"
       when :gradients
         "gradient(#{auto_math(items[0])})"
+      when :stop_gradient
+        auto_math(items[0])
       else
         fail "math form for #{operation}"
       end

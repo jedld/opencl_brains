@@ -65,6 +65,10 @@ module TensorStream
     TensorStream::Operation.new(:gradients, ys, xs, options)
   end
 
+  def self.stop_gradient(tensor, options = {})
+    TensorStream::Operation.new(:stop_gradient, tensor, nil, options)
+  end
+
   def self.constant(value, options = {})
     shared_options = { const: true, value: value, name: options[:name] }
     if value.is_a?(Float)

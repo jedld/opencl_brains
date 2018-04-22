@@ -123,6 +123,8 @@ module TensorStream
           rescue TensorStream::FullEvalNotPossible => e
             TensorStream.cos(a)
           end
+        when :stop_gradient
+          eval(a, child_context)
         when :random_uniform
           maxval = tensor.options.fetch(:maxval, 1)
           minval = tensor.options.fetch(:minval, 0)

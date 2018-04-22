@@ -135,6 +135,15 @@ end
       expect(h.eval).to eq([3.0, 1.0])
     end
 
+    it "using stop gradients" do
+      a = TensorStream.stop_gradient(TensorStream.constant(0.0))
+      b = TensorStream.stop_gradient(a * 2)
+      h = TensorStream.gradients(a + b, [a, b])
+      expect((a+b).eval).to eq(0)
+      expect((a+b).to_math).to eq("(0.0 + (0.0 * 2))")
+      expect(h.eval).to eq([1.0, 1.0])
+    end
+
     it "computes gradient of sin" do
       var = TensorStream.constant(1.0)              # Must be a tf.float32 or tf.float64 variable.
       loss = TensorStream.sin(var)  # some_function_of() returns a `Tensor`.
