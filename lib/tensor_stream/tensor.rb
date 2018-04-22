@@ -38,7 +38,7 @@ module TensorStream
       @data_type = data_type
       @rank = rank
       @shape = TensorShape.new(shape, rank)
-      @value = []
+      @value = nil
       @is_const = options[:const] || false
       @graph = options[:graph] || TensorStream.get_default_graph
       @name = options[:name] || build_name
@@ -171,6 +171,20 @@ module TensorStream
       tensor.kind_of?(Tensor) ? tensor.to_math : tensor
     end
 
+    def self.detect_type(value)
+      dtype = if value.is_a?(String)
+        :string
+      elsif value.is_a?(Float)
+        :float32
+      elsif value.is_a?(Integer)
+        :int32
+      elsif value.is_a?(Array)
+        :array
+      else
+        :float32
+      end
+    end
+
     def self.cast_dtype(val, dtype)
       return val if val.kind_of?(Tensor)
       case dtype
@@ -215,11 +229,12 @@ module TensorStream
 
     def auto_wrap(operand)
       if !operand.kind_of?(Tensor)
-        TensorStream.constant(operand, dtype: @data_type)
+        TensorStream.constant(operand, dtype: @data_type || Tensor.detect_type(operand) )
       else
         operand
       end
     end
+
     def build_name
       "#{@is_const ? "Const#{Tensor.const_name}:#{@rank}" : "Variable#{Tensor.var_name}:#{@rank}"}"
     end

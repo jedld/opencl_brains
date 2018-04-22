@@ -4,11 +4,14 @@ module TensorStream
 
     def initialize(operation, a, b, options = {})
       @operation = operation
-      @items = [a, b]
       @rank = options[:rank] || 0
       @name = set_name
       @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
+      @data_type = options[:data_type]
+
+      @items = [a, b].map { |i| auto_wrap(i) }
+
       if options[:shape]
         @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
       end
@@ -71,6 +74,8 @@ module TensorStream
 
     def to_math
       case operation
+      when :assign
+        "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1])})"
       when :sin
         "sin(#{auto_math(items[0])})"
       when :cos

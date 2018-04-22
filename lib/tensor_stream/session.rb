@@ -24,7 +24,7 @@ module TensorStream
       #scan for placeholders and assign value
       options[:feed_dict].keys.each do |k|
         if k.kind_of?(Placeholder)
-          context[k.name.to_sym] = options[:feed_dict][k].kind_of?(Tensor) ? options[:feed_dict][k] : TensorStream.constant(options[:feed_dict][k])
+          context[k.name.to_sym] = options[:feed_dict][k].kind_of?(Tensor) ? options[:feed_dict][k] : TensorStream.constant(options[:feed_dict][k], dtype: k.data_type)
         end
       end if options[:feed_dict]
       evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]))

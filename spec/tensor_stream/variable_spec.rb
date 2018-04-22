@@ -25,7 +25,6 @@ RSpec.describe TensorStream::Variable do
       session = TensorStream::Session.default_session
       mammal = TensorStream.Variable("Elephant", :string)
       session.run(TensorStream.global_variables_initializer)
-
       expect(mammal.eval).to eq("Elephant")
     end
   end

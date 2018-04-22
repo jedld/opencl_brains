@@ -146,10 +146,12 @@ module TensorStream
   end
 
   def self.sin(a, options = {})
+    options[:data_type] ||= :float32
     TensorStream::Operation.new(:sin, a, nil, options)
   end
 
   def self.cos(a, options = {})
+    options[:data_type] ||= :float32
     TensorStream::Operation.new(:cos, a, nil, options)
   end
 
@@ -164,18 +166,8 @@ module TensorStream
   private
 
   def self.dtype_eval(dtype, rank, value)
-    dtype = if value[0].is_a?(String)
-      :string
-    elsif value[0].is_a?(Float)
-      :float32
-    elsif value[0].is_a?(Integer)
-      :int32
-    elsif value[0].is_a?(Array)
-      rank += 1
-      :array
-    else
-      :float32
-    end
+    dtype = Tensor.detect_type(value[0])
+    rank+=1 if dtype == :array
 
     [dtype, rank, value[0], value.size]
   end

@@ -93,7 +93,7 @@ RSpec.describe TensorStream::Operation do
 
       sess = TensorStream.Session
       expect(sess.run(x_sin)).to eq(0.09983341664682815)
-      expect(sess.run(y_sin)).to eq([[0.8912073600614354, -0.3820714171840091], [0.8632093666488738, 0.1411200080598672]])
+      expect(sess.run(y_sin)).to eq([[0.8912073600614354, -0.3820714171840091], [0.8632093666488737, 0.1411200080598672]])
     end
   end
 
