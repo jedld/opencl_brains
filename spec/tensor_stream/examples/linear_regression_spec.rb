@@ -5,7 +5,7 @@ require 'matrix'
 RSpec.describe "Performs a linear regression" do
   it "performs a linear regression" do
     learning_rate = 0.01
-    training_epochs = 2
+    training_epochs = 1000
     display_step = 50
 
     train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
@@ -46,6 +46,10 @@ RSpec.describe "Performs a linear regression" do
               "W=", sess.run(W), "b=", sess.run(b))
         end
       end
+
+      puts("Optimization Finished!")
+      training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
+      puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')  
     end
   end
 end
