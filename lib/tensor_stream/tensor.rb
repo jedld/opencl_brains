@@ -55,7 +55,7 @@ module TensorStream
         elsif shape.size > 0
           @value = reshape(options[:value], shape.reverse.dup)
         else
-          @value = options[:value]
+          @value = Tensor.cast_dtype(options[:value], @data_type)
         end
       end
 
@@ -96,7 +96,7 @@ module TensorStream
     end
 
     def +(operand)
-      TensorStream::Operation.new(:add, self, operand)
+      TensorStream::Operation.new(:add, self, auto_wrap(operand))
     end
 
     def [](index)
@@ -104,7 +104,8 @@ module TensorStream
     end
 
     def *(operand)
-      TensorStream::Operation.new(:mul, self,operand)
+
+      TensorStream::Operation.new(:mul, self, auto_wrap(operand))
     end
 
     def **(operand)
@@ -112,11 +113,11 @@ module TensorStream
     end
 
     def /(operand)
-      TensorStream::Operation.new(:div, self, operand)
+      TensorStream::Operation.new(:div, self, auto_wrap(operand))
     end
 
     def -(operand)
-      TensorStream::Operation.new(:sub, self, operand)
+      TensorStream::Operation.new(:sub, self, auto_wrap(operand))
     end
 
     def -@
@@ -170,6 +171,20 @@ module TensorStream
       tensor.kind_of?(Tensor) ? tensor.to_math : tensor
     end
 
+    def self.cast_dtype(val, dtype)
+      return val if val.kind_of?(Tensor)
+      case dtype
+      when :float32
+        val.to_f
+      when :string
+        val.to_s
+      when :int32
+        val.to_i
+      else
+        val
+      end
+    end
+
     protected
 
     def hashify_tensor(tensor)
@@ -200,7 +215,7 @@ module TensorStream
 
     def auto_wrap(operand)
       if !operand.kind_of?(Tensor)
-        TensorStream.constant(operand)
+        TensorStream.constant(operand, dtype: @data_type)
       else
         operand
       end

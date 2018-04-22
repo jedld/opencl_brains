@@ -148,7 +148,7 @@ module TensorStream
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradients
           b.collect do |xs|
-            Operation.derivative(a, stop_gradients: tensor.options[:stop_gradients])
+            Operation.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
           end
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
@@ -225,6 +225,7 @@ module TensorStream
     end
 
     def resolve_placeholder(placeholder, execution_context = {})
+      return nil if placeholder.nil?
       return placeholder if retain.include?(placeholder)
 
       var = if placeholder.kind_of?(Placeholder) 
@@ -236,8 +237,8 @@ module TensorStream
       else
         placeholder
       end
-
-      var
+      return var unless placeholder.kind_of?(Tensor)
+      Tensor.cast_dtype(var, placeholder.data_type)
     end
 
     def reduce_axis(axis, val,  keep_dims, child_context, op = ->(v) { v.kind_of?(Array) ? v.reduce(:+) : v })

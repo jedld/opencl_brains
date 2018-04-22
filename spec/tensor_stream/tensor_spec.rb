@@ -30,6 +30,13 @@ RSpec.describe TensorStream::Tensor do
       expect(f.to_s).to eq("negate_4:0")
     end
 
+    context "constants" do
+      it "does some type casting if dtype is specified" do
+        c = TensorStream.constant(1, dtype: :float32)
+        expect(c.eval).to eq(1.0)
+      end
+    end
+
     it "automatically adjusts based on shape" do
       b = TensorStream.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape: [3, 2], name: 'b')
       expect(b.eval).to eq(
@@ -117,7 +124,7 @@ RSpec.describe TensorStream::Tensor do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       y = TensorStream.placeholder(TensorStream::Types.float32)
       z = x + y
-      expect(z.eval(feed_dict: { x =>  3, y => 4.5})).to eq(7.5)
+      expect(z.eval(feed_dict: { x =>  3.0, y => 4.5})).to eq(7.5)
     end
   end
 

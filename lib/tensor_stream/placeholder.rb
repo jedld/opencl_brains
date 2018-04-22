@@ -1,6 +1,5 @@
 module TensorStream
   class Placeholder < Tensor
-
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
       @rank = rank

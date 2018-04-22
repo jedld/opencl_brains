@@ -23,36 +23,41 @@ module TensorStream
       @@op_counter = 0
     end
 
-    def self.derivative(tensor, options = {})
-      return TensorStream.constant(1) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
+    def self.derivative(tensor, dx, options = {})
+      return TensorStream.constant(1, dtype: tensor.data_type) if tensor == dx
+      return TensorStream.constant(0, dtype: tensor.data_type) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
 
       if tensor.kind_of?(Operation)
         case tensor.operation
           when :sin
-            Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0], options)
+            Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0], dx, options)
           when :cos
-            -Operation.new(:sin, tensor.items[0], nil) * derivative(tensor.items[0], options)
+            -Operation.new(:sin, tensor.items[0], nil) * derivative(tensor.items[0], dx, options)
           when :add
-            derivative(tensor.items[0]) + derivative(tensor.items[1], options)
+            derivative(tensor.items[0], dx, options) + derivative(tensor.items[1], dx, options)
           when :sub
-            derivative(tensor.items[0]) - derivative(tensor.items[1], options)
+            derivative(tensor.items[0], dx, options) - derivative(tensor.items[1], dx, options)
           when :exp
-            tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0], options)
+            tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0], dx, options)
           when :div
             # apply the quotient rule
-            ( derivative(tensor.items[0]) * tensor.items[1] - tensor.items[0] * derivative(tensor.items[1], options) ) / tensor.items[1]**2
+            ( derivative(tensor.items[0], dx, options) * tensor.items[1] - tensor.items[0] * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
           when :mul
             # apply the product rule
-            derivative(tensor.items[0]) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1], options)
+            derivative(tensor.items[0], dx, options) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1], dx, options)
           when :reduce_sum
-            derivative(tensor.items[0])
+            derivative(tensor.items[0], dx, options)
           else
             fail "no derivative found for #{tensor.operation}"
         end
-      elsif tensor.kind_of?(TensorStream::Variable) || tensor.kind_of?(TensorStream::Placeholder)
-        TensorStream.constant(1,  dtype: tensor.data_type)
+      elsif tensor.kind_of?(TensorStream::Variable)
+        if tensor == dx
+          TensorStream.constant(1,  dtype: tensor.data_type)
+        else
+          TensorStream.constant(0, dtype: tensor.data_type)
+        end
       else
-        TensorStream.constant(0)
+        TensorStream.constant(0, dtype: tensor.data_type)
       end
     end
 
