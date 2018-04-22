@@ -5,7 +5,7 @@ require 'matrix'
 RSpec.describe "Performs a linear regression" do
   it "performs a linear regression" do
     learning_rate = 0.01
-    training_epochs = 1000
+    training_epochs = 2
     display_step = 50
 
     train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,

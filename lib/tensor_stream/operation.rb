@@ -32,6 +32,10 @@ module TensorStream
   
       if tensor.kind_of?(Operation)
         case tensor.operation
+          when :tanh
+            TensorStream.constant(1, dtype: tensor.data_type) - (Operation.new(:tanh, tensor.items[0], nil) ** 2)
+          when :tan
+            TensorStream.constant(1, dtype: tensor.data_type) / (Operation.new(:cos, tensor.items[0], nil) ** 2)
           when :sin
             Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0], dx, options)
           when :cos
@@ -40,7 +44,7 @@ module TensorStream
             derivative(tensor.items[0], dx, options) + derivative(tensor.items[1], dx, options)
           when :sub
             derivative(tensor.items[0], dx, options) - derivative(tensor.items[1], dx, options)
-          when :exp
+          when :pow
             tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0], dx, options)
           when :div
             # apply the quotient rule

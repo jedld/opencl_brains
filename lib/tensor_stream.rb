@@ -161,6 +161,18 @@ module TensorStream
     TensorStream::Operation.new(:cos, a, nil, options)
   end
 
+  def self.tan(a, options = {})
+    options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
+    TensorStream::Operation.new(:tan, a, nil, options)
+  end
+
+  def self.tanh(a, options = {})
+    options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
+    TensorStream::Operation.new(:tanh, a, nil, options)
+    end
+
   def self.matmul(a, b, options = {})
     TensorStream::Operation.new(:matmul, a, b, options)
   end

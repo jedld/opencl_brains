@@ -84,38 +84,42 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".sin" do
-    it "Computes for the sine of a tensor" do
+[
+    [:sin, 0.09983341664682815, [[0.8912073600614354, -0.3820714171840091], [0.8632093666488737, 0.1411200080598672]],  0.9950041652780258],
+    [:cos, 0.9950041652780258, [[0.4535961214255773, -0.9241328000731296], [-0.5048461045998576, -0.9899924966004454]], -0.09983341664682815],
+    [:tan, 0.10033467208545055,  [[1.9647596572486523, 0.41343778421648336], [-1.7098465429045073, -0.1425465430742778]], 1.0100670464224948],
+    [:tanh, 0.09966799462495582,  [[0.8004990217606297, 0.9999999999999792], [0.9704519366134539, 0.9950547536867305]], 0.9900662908474398],    
+].each do |func, scalar, matrix, gradient|
+  context ".#{func}" do
+    it "Computes for the #{func} of a tensor" do
       x = TensorStream.constant(0.1)
       y = TensorStream.constant([[1.1, 16.1], [2.1, 3.0]])
-      x_sin = TensorStream.sin(x)
-      y_sin = TensorStream.sin(y)
+      x_sin = TensorStream.send(func,x)
+      y_sin = TensorStream.send(func,y)
 
       sess = TensorStream.Session
-      expect(sess.run(x_sin)).to eq(0.09983341664682815)
-      expect(sess.run(y_sin)).to eq([[0.8912073600614354, -0.3820714171840091], [0.8632093666488737, 0.1411200080598672]])
+      expect(sess.run(x_sin)).to eq(scalar)
+      expect(sess.run(y_sin)).to eq(matrix)
+
+      grad = TensorStream.gradients(x_sin, [x])[0]
+      expect(sess.run(grad)).to eq(gradient)
     end
   end
-
-  xcontext ".derivative" do
+end
+ 
+  context ".derivative" do
     it "Creates a derivative graph for a computation" do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       p = TensorStream.pow(x, 3) 
 
-      derivative_function = TensorStream::Operation.derivative(p)
+      derivative_function = TensorStream::Operation.derivative(p, x)
       expect(p.eval(feed_dict: { x => 2})).to eq(8)
       expect(derivative_function.eval(feed_dict: { x => 2})).to eq(12)
-      sess = TensorStream.Session
-      retained = sess.run(p, retain: [x])
-      retained_derivative_function = TensorStream::Operation.derivative(retained)
-      retained_simplified = sess.run(retained_derivative_function, retain: [x])
-      expect(retained_simplified.to_math).to eq("(3 * (Placeholder:^2))")
-
-
+  
       # f(x) = (sin x) ^ 3
       # dx = 3(sin x)^2 * cos x
       y = TensorStream.sin(x) ** 3
-      derivative_function_y = TensorStream::Operation.derivative(y)
+      derivative_function_y = TensorStream::Operation.derivative(y, x)
       expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
     end
   end
@@ -132,7 +136,6 @@ RSpec.describe TensorStream::Operation do
     end
 
     it "computes gradient of sin" do
-      data = TensorStream.placeholder(TensorStream.float32)
       var = TensorStream.constant(1.0)              # Must be a tf.float32 or tf.float64 variable.
       loss = TensorStream.sin(var)  # some_function_of() returns a `Tensor`.
       var_grad = TensorStream.gradients(loss, [var])[0]

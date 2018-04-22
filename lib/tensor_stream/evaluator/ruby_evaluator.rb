@@ -87,12 +87,30 @@ module TensorStream
           rescue TensorStream::FullEvalNotPossible => e
             a * b
           end
-        when :exp
+        when :pow
           begin
             process_vector_math_op(a, b, child_context, ->(a,b) { a ** b })
           rescue TensorStream::FullEvalNotPossible => e
             TensorStream.pow(a,b)
           end
+        when :tanh
+          begin
+            process_function_op(a, child_context, ->(a,b) { Math.tanh(a) } )
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.tanh(a)
+          end
+        when :tan
+          begin
+            process_function_op(a, child_context, ->(a,b) { Math.tan(a) } )
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.tan(a)
+          end
+        when :sec
+          begin
+            process_function_op(a, child_context, ->(a,b) { Math.sec(a) } )
+          rescue TensorStream::FullEvalNotPossible => e
+            TensorStream.sec(a)
+          end          
         when :sin
           begin
             process_function_op(a, child_context, ->(a,b) { Math.sin(a) } )
