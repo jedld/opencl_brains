@@ -66,6 +66,11 @@ module TensorStream
       b = resolve_placeholder(tensor.items[1], child_context) if tensor.items
 
       case(tensor.operation)
+        when :equal
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+          
+          (a == b)
         when :slice
           f = eval(a, child_context)
           index = eval(b, child_context)

@@ -157,6 +157,10 @@ module TensorStream
     TensorStream::Operation.new(:negate, a, nil, options)
   end
 
+  def self.equal(a, b, options = {})
+    TensorStream::Operation.new(:equal, a, b, options)
+  end
+
   def self.multiply(a, b)
     a * b
   end

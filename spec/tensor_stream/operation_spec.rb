@@ -10,6 +10,21 @@ RSpec.describe TensorStream::Operation do
     srand(1234)
   end
 
+  context ".equal" do
+    it "returns the truth value of two tensors" do
+      a = TensorStream.constant(1.0)
+      b = TensorStream.constant(1.0)
+      c = TensorStream.constant(2.1)
+      d = TensorStream.constant([[1.0]])
+      e = TensorStream.constant([[1.0]])
+      f = TensorStream.constant([[2.0]])
+      expect(TensorStream.equal(a, b).eval).to eq(true)
+      expect(TensorStream.equal(a, c).eval).to eq(false)
+      expect(TensorStream.equal(d, e).eval).to eq(true)
+      expect(TensorStream.equal(e, f).eval).to eq(false)
+    end
+  end
+
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.
