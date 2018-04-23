@@ -1,8 +1,9 @@
 module TensorStream
   class Graph
-    attr_accessor :nodes, :collections
+    attr_accessor :nodes, :collections, :eager_execution
     
     def initialize
+      @eager_execution = false
       @nodes = {}
       @collections = {
         :"#{GraphKeys::GLOBAL_VARIABLES}" => []
@@ -32,6 +33,9 @@ module TensorStream
       end
 
       @nodes[node.name] = node
+      if @eager_execution
+        node.value= node.eval
+      end
     end
 
     def add_variable(node, options = {})
@@ -43,6 +47,18 @@ module TensorStream
 
     def control_dependencies(dependencies = [], &block)
       
+    end
+
+    def enable_eager_execution
+      @eager_execution = true
+    end
+
+    def disable_eager_execution
+      @eager_execution = false
+    end
+    
+    def executing_eagerly?
+      @eager_execution
     end
 
     protected

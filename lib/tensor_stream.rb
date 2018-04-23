@@ -28,6 +28,18 @@ module TensorStream
     TensorStream::Graph.get_default_graph
   end
 
+  def self.enable_eager_execution
+    TensorStream::Graph.get_default_graph.enable_eager_execution
+  end
+
+  def self.disable_eager_execution
+    TensorStream::Graph.get_default_graph.disable_eager_execution
+  end
+
+  def self.executing_eagerly?
+    TensorStream::Graph.get_default_graph.executing_eagerly?
+  end
+
   def self.Variable(value, dtype = :float32, options = {})
     common_options= {
       initializer: Operation.new(:assign, nil, value),

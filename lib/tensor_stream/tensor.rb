@@ -162,6 +162,18 @@ module TensorStream
       }
     end
 
+    def to_i
+      @value
+    end
+
+    def to_a
+      @value
+    end
+
+    def to_f
+      @value
+    end
+
     def to_math
       is_const ? @value : @name
     end
