@@ -69,7 +69,7 @@ module TensorStream
         when :equal
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
-          
+
           (a == b)
         when :slice
           f = eval(a, child_context)
@@ -228,7 +228,11 @@ module TensorStream
 
       # ruby scalar
       if get_rank(eval_a) == 0
-        TensorStream.constant(op.(eval_a,eval_b), dtype: a.dtype)
+        if (get_rank(eval_b)) == 0
+          TensorStream.constant(op.(eval_a,eval_b), dtype: a.dtype)
+        else
+          TensorStream.constant(constant_op(eval_b, eval_a, child_context, op, true))
+        end
       elsif get_rank(eval_a) > 0
         if eval_b.kind_of?(Tensor) && get_rank(eval_b) > 0
           TensorStream.constant(vector_op(eval_a, eval_b, child_context, op))
@@ -305,7 +309,7 @@ module TensorStream
       end
     end
 
-    def constant_op(vector, constant, child_context, op = ->(a,b) { a + b })
+    def constant_op(vector, constant, child_context, op = ->(a,b) { a + b }, switch = false)
       eval_vector = eval(vector, child_context)
       constant = eval(constant, child_context)
 
@@ -314,12 +318,12 @@ module TensorStream
       eval_vector.each_with_index.collect do |item, index|
         c = constant.is_a?(Array) ? constant[index] : constant
         if item.is_a?(Array)
-          constant_op(item, c, child_context, op)
+          constant_op(item, c, child_context, op, switch)
         else
           if item.respond_to?(:value) 
-            op.(item.value, c)
+            switch ? op.(c, item.value) : op.(item.value, c)
           else
-            op.(item, c)
+            switch ? op.(c, item) : op.(item, c)
           end
         end
       end

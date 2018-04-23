@@ -27,17 +27,18 @@ module TensorStream
     end
 
     def self.derivative(tensor, dx, options = {})
-      return TensorStream.constant(1, dtype: tensor.data_type) if tensor == dx
-      return TensorStream.constant(0, dtype: tensor.data_type) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
+      constant_options = { dtype: tensor.data_type, shape: tensor.shape ? tensor.shape.shape : nil}
+      return TensorStream.constant(1, constant_options) if tensor == dx
+      return TensorStream.constant(0, constant_options) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
   
       if tensor.kind_of?(Operation)
         case tensor.operation
           when :stop_gradient
-            return TensorStream.constant(0, dtype: tensor.data_type)
+            return TensorStream.constant(0, constant_options)
           when :tanh
-            TensorStream.constant(1, dtype: tensor.data_type) - (Operation.new(:tanh, tensor.items[0], nil) ** 2)
+            TensorStream.constant(1, constant_options) - (Operation.new(:tanh, tensor.items[0], nil) ** 2)
           when :tan
-            TensorStream.constant(1, dtype: tensor.data_type) / (Operation.new(:cos, tensor.items[0], nil) ** 2)
+            TensorStream.constant(1, constant_options) / (Operation.new(:cos, tensor.items[0], nil) ** 2)
           when :sin
             Operation.new(:cos, tensor.items[0], nil) * derivative(tensor.items[0], dx, options)
           when :cos
@@ -57,16 +58,16 @@ module TensorStream
           when :reduce_sum
             derivative(tensor.items[0], dx, options)
           else
-            fail "no derivative found for #{tensor.operation}"
+            fail "no derivative implementation found for op #{tensor.operation}"
         end
       elsif tensor.kind_of?(TensorStream::Variable)
         if tensor == dx
-          TensorStream.constant(1,  dtype: tensor.data_type)
+          TensorStream.constant(1, constant_options)
         else
-          TensorStream.constant(0, dtype: tensor.data_type)
+          TensorStream.constant(0, constant_options)
         end
       else
-        TensorStream.constant(0, dtype: tensor.data_type)
+        TensorStream.constant(0, constant_options)
       end
     end
 
@@ -88,15 +89,13 @@ module TensorStream
         "(#{items[0] ? items[0].name : "self"} += #{auto_math(items[1])})"
       when :assign
         "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1])})"
-      when :sin
-        "sin(#{auto_math(items[0])})"
-      when :cos
-        "cos(#{auto_math(items[0])})"
+      when :sin, :cos, :tanh
+        "#{operation}(#{auto_math(items[0])})"
       when :add
        "(#{auto_math(items[0])} + #{auto_math(items[1])})"
       when :sub
         "(#{auto_math(items[0])} - #{auto_math(items[1])})"
-      when :exp
+      when :pow
         "(#{auto_math(items[0])}^#{auto_math(items[1])})"
       when :div
         "(#{auto_math(items[0])} / #{auto_math(items[1])})"

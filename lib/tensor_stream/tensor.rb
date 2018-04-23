@@ -50,7 +50,7 @@ module TensorStream
           end
 
           @value = options[:value].collect do |v|
-            v.kind_of?(Tensor) ? v : TensorStream.constant(v, dtype: data_type)
+            v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : TensorStream.constant(Tensor.cast_dtype(v, data_type), dtype: data_type)
           end
         elsif shape.size > 0
           @value = reshape(options[:value], shape.reverse.dup)
@@ -175,7 +175,11 @@ module TensorStream
     end
 
     def to_math
-      is_const ? @value : @name
+      if @value.kind_of?(Array)
+        @value.collect { |v| v.kind_of?(Tensor) ? v.to_math : v }
+      else
+        is_const ? @value : @name
+      end
     end
 
     def auto_math(tensor)
@@ -198,6 +202,13 @@ module TensorStream
 
     def self.cast_dtype(val, dtype)
       return val if val.kind_of?(Tensor)
+
+      if val.kind_of?(Array)
+        return val.collect do |v|
+          cast_dtype(v, dtype)
+        end
+      end
+
       case dtype
       when :float32
         val.to_f
