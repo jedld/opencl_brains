@@ -168,16 +168,39 @@ module TensorStream
             reduce_axis(axis, val, keep_dims, child_context)
           end
           TensorStream.constant(res)
+        when :transpose
+          matrix_a = eval(a, child_context)
+          TensorStream.constant(matrix_a.transpose)
+        when :eye
+          rows = complete_eval(a, child_context)
+          columns = complete_eval(b, child_context)
+
+          rows.times.collect do |index|
+            columns.times.collect do |col|
+              if tensor.data_type == :float32
+                index == col ? 1.0 : 0.0
+              else
+                index == col ? 1 : 0
+              end
+            end
+          end
         when :zeros
           if tensor.shape.shape.size == 0
             TensorStream.constant(0)
           else
             TensorStream.constant(generate_vector(tensor.shape.shape, generator: ->() { 0.0 } ))
           end
+        when :shape
+          input = complete_eval(a, child_context)
+
+          TensorStream.constant(shape_eval(input))
         when :matmul
-          matrix_a = eval(a, child_context)
-          matrix_b = eval(b, child_context)
-  
+          matrix_a = complete_eval(a, child_context)
+          matrix_b = complete_eval(b, child_context)
+
+          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
+          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradients
           b.collect do |xs|
@@ -307,6 +330,19 @@ module TensorStream
           end
         end
       end
+    end
+
+    def shape_eval(input)
+      return [] unless input.kind_of?(Array)
+      arr = []
+      arr_ptr = input
+
+      begin
+        arr << arr_ptr.size
+        arr_ptr = arr_ptr[0]
+      end while arr_ptr.kind_of?(Array)
+
+      arr
     end
 
     def constant_op(vector, constant, child_context, op = ->(a,b) { a + b }, switch = false)

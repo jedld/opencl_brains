@@ -62,6 +62,10 @@ module TensorStream
     session
   end
 
+  def self.program(&block)
+    block.(self)
+  end
+
   def self.layers
     TensorStream::Layers
   end
@@ -79,6 +83,14 @@ module TensorStream
 
   def self.stop_gradient(tensor, options = {})
     TensorStream::Operation.new(:stop_gradient, tensor, nil, options)
+  end
+
+  def self.eye(num_rows, num_columns: nil, dtype: :float32, name: nil)
+    TensorStream::Operation.new(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name, preserve_params_type: true)
+  end
+
+  def self.shape(input, name: nil, out_type: :int32)
+    TensorStream::Operation.new(:shape, input, nil, name: name)
   end
 
   def self.constant(value, options = {})
@@ -193,8 +205,14 @@ module TensorStream
     TensorStream::Operation.new(:tanh, a, nil, options)
     end
 
-  def self.matmul(a, b, options = {})
-    TensorStream::Operation.new(:matmul, a, b, options)
+  def self.matmul(a, b, transpose_a: false,
+    transpose_b: false,
+    name: nil)
+    TensorStream::Operation.new(:matmul, a, b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
+  end
+
+  def self.transpose(tensor, perm: nil, name: 'transpose')
+    TensorStream::Operation.new(:transpose, tensor, nil, perm: perm, name: name)
   end
 
   def self.train

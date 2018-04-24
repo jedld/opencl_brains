@@ -53,7 +53,7 @@ module TensorStream
             v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : TensorStream.constant(Tensor.cast_dtype(v, data_type), dtype: data_type)
           end
         elsif shape.size > 0
-          @value = reshape(options[:value], shape.reverse.dup)
+          @value = reshape(options[:value], shape.dup)
         else
           @value = Tensor.cast_dtype(options[:value], @data_type)
         end

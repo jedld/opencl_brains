@@ -5,12 +5,12 @@ module TensorStream
     def initialize(operation, a, b, options = {})
       @operation = operation
       @rank = options[:rank] || 0
-      @name = set_name
+      @name = options[:name] || set_name
       @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
       @data_type = options[:data_type]
 
-      @items = [a, b].map { |i| auto_wrap(i) }
+      @items = [a, b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) } 
 
       if options[:shape]
         @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
@@ -57,6 +57,14 @@ module TensorStream
             derivative(tensor.items[0], dx, options) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1], dx, options)
           when :reduce_sum
             derivative(tensor.items[0], dx, options)
+          when :matmul
+            derivative_a = derivative(tensor.items[0], dx, options)
+            derivative_b = derivative(tensor.items[1], dx, options)
+
+            Operation.new(:matmul, derivative_a,  tensor.items[1], transpose_b: true,
+                name: "matrix_dx" ) +
+            Operation.new(:matmul, tensor.items[0], derivative_b, transpose_a: true,
+                name: "matrix_dy" )
           else
             fail "no derivative implementation found for op #{tensor.operation}"
         end
@@ -77,6 +85,20 @@ module TensorStream
         name: name,
         operands: hashify_tensor(items)
       }
+    end
+
+    def self.empty_matrix?(m)
+      if m.kind_of?(Array)
+        m.each do |item|
+          if item.kind_of?(Array)
+            return false if !empty_matrix?(item)
+          else
+            return false if item!=0 || item!=0.0
+          end
+        end
+      end
+
+      return true
     end
 
     def to_math
@@ -113,6 +135,14 @@ module TensorStream
         "gradient(#{auto_math(items[0])})"
       when :stop_gradient
         auto_math(items[0])
+      when :matmul
+        "#{auto_math(items[0])}.matmul(#{auto_math(items[1])})"
+      when :eye
+        "eye(#{auto_math(items[0])})"
+      when :transpose
+        "transpose(#{auto_math(items[0])})"
+      when :shape
+        "#{auto_math(items[0])}.shape"
       else
         fail "math form for #{operation}"
       end

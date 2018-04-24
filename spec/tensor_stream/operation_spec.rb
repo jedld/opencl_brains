@@ -123,7 +123,33 @@ RSpec.describe TensorStream::Operation do
     end
   end
 end
- 
+
+
+  context ".matmul" do
+    it "performs matrix multiplication" do
+      TensorStream.program do |tf|
+        a = tf.constant([1, 2, 3, 4, 5, 6], shape: [2, 3])
+        b = tf.constant([7, 8, 9, 10, 11, 12], shape: [3, 2])
+        c = tf.matmul(a, b)
+        expect(c.eval).to eq([[ 58,  64],
+                              [139, 154]])
+        d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
+        expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
+      end
+    end
+  end
+
+  context ".transpose" do
+    it "transposes matrices" do
+      TensorStream.program do |tf|
+        x = tf.constant([[1, 2, 3], [4, 5, 6]])
+        t = tf.transpose(x)
+        sess = tf.Session
+        expect(sess.run(t)).to eq([[1, 4], [2, 5], [3, 6]])
+      end
+    end
+  end
+
   context ".derivative" do
     it "Creates a derivative graph for a computation" do
       x = TensorStream.placeholder(TensorStream::Types.float32)
@@ -138,6 +164,39 @@ end
       y = TensorStream.sin(x) ** 3
       derivative_function_y = TensorStream::Operation.derivative(y, x)
       expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
+    end
+  end
+
+  context ".shape" do
+    it "returns a 1D tensor representing shape of target tensor" do
+      TensorStream.program do |tf|
+        t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+        shape = tf.shape(t)
+        expect(shape.eval).to eq([2, 2, 3])
+
+        u = tf.constant(1)
+        shape = tf.shape(u)
+        expect(shape.eval).to eq([])
+
+        v = tf.constant([[1,2,3],[4,5,6]])
+        shape = tf.shape(v)
+        expect(shape.eval).to eq([2 ,3])
+      end
+    end
+  end
+
+  context ".eye" do
+    it "creates an identity matrix" do
+      TensorStream.program do |tf|
+        e = tf.eye(2)
+        expect(e.eval).to eq([[1.0, 0.0],[0.0, 1.0]])
+
+        e = tf.eye(3)
+        expect(e.eval).to eq([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+        e = tf.eye(3, num_columns: 2)
+        expect(e.eval).to eq([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
+      end
     end
   end
 
@@ -171,15 +230,24 @@ end
 
 
     it "computes for the derivative of a matrix multiplication operation" do
-      x = TensorStream.constant([[4.0,5.0],[5.0,6.0]], dtype: :float32)
-      y = TensorStream.constant([[1.0,2.0],[3.0,4.0]], dtype: :float32)
-      c = TensorStream.matmul(x, y)
-      expect(c.eval).to eq([[19, 28], [23, 34]])
-      c_grad = TensorStream.gradients(c, [x, y])
-      expect(c_grad.eval).to eq([
-        [[3.0, 7.0], [3.0, 7.0 ]],
-        [[9.0, 9.0], [11.0, 11.0]]
-      ])
+      TensorStream.program do |tf|
+        x = tf.constant([[4.0,5.0],[5.0,6.0]], dtype: :float32)
+        y = tf.constant([[1.0,2.0],[3.0,4.0]], dtype: :float32)
+        z = tf.constant([[4.0,5.0]], dtype: :float32)
+        c = tf.matmul(x, y)
+        cz = tf.matmul(z, y)
+        expect(c.eval).to eq([[19, 28], [23, 34]])
+        c_grad = tf.gradients(c, [x, y])
+        expect(c_grad.eval).to eq([
+          [[3.0, 7.0], [3.0, 7.0 ]],
+          [[9.0, 9.0], [11.0, 11.0]]
+        ])
+
+        z_grad = tf.gradients(cz, [y])
+        expect(z_grad.eval).to eq([
+          [[4.0, 4.0], [5.0, 5.0]]
+        ])
+      end
     end
   end
 

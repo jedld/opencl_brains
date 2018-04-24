@@ -51,6 +51,11 @@ RSpec.describe TensorStream::Tensor do
       expect(c.eval).to eq(
         [[0.0, 0.0], [0.0, 0.0]]
       )
+
+      c = TensorStream.constant(1, shape: [2,3])
+      expect(c.eval).to eq(
+        [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+      )
     end
 
     it "can define Rank 1 Tensor definitions" do
