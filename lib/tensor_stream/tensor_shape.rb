@@ -17,5 +17,9 @@ module TensorStream
     def [](index)
       @shape[index]
     end
+    
+    def ndims
+      shape.size
+    end
   end
 end
