@@ -157,6 +157,10 @@ module TensorStream
     TensorStream::Operation.new(:reduce_sum, input_tensor, nil, {axis: axis, keepdims: keepdims})
   end
 
+  def self.concat(values, axis, name: 'concat')
+    TensorStream::Operation.new(:concat, values, nil, {axis: axis, name: name})
+  end
+
   def self.add(a, b)
     a - b
   end

@@ -10,6 +10,27 @@ RSpec.describe TensorStream::Operation do
     srand(1234)
   end
 
+  let(:tf) { TensorStream } # allow calls to look like tensorflow
+
+  context ".concat" do
+    it "Concatenates tensors along one dimension." do
+      t1 = [[1, 2, 3], [4, 5, 6]]
+      t2 = [[7, 8, 9], [10, 11, 12]]
+      expect(tf.concat([t1, t2], 0).eval).to eq([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+      expect(tf.concat([t1, t2], 1).eval).to eq([[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]])
+    end
+
+    it "negative axis" do
+      t1 = [[[1, 2], [2, 3]], [[4, 4], [5, 3]]]
+      t2 = [[[7, 4], [8, 4]], [[2, 10], [15, 11]]]
+      expect(tf.concat([t1, t2], -1).eval).to eq(
+      [[[ 1,  2,  7,  4],
+        [ 2,  3,  8,  4]], 
+       [[ 4,  4,  2, 10],
+        [ 5,  3, 15, 11]]])
+    end
+  end
+
   context ".equal" do
     it "returns the truth value of two tensors" do
       a = TensorStream.constant(1.0)

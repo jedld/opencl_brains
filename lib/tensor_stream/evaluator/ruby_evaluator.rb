@@ -98,6 +98,10 @@ module TensorStream
           rescue TensorStream::FullEvalNotPossible => e
             TensorStream.pow(a,b)
           end
+        when :concat
+          values = complete_eval(a, child_context)
+          res = concat_array(values, tensor.options[:axis])
+          TensorStream.constant(res)
         when :tanh
           call_op(:tanh, a, child_context, ->(a,b) { Math.tanh(a) })
         when :tan
@@ -262,6 +266,26 @@ module TensorStream
       return rank + 1 if value.size == 0
 
       get_rank(value[0], rank + 1)
+    end
+
+    def concat_array(values, axis)
+      combined_array = values.shift
+      axis = get_rank(combined_array) - 1 if axis == -1
+
+      values.each do |v|
+        combined_array = concat(combined_array, v, axis)
+      end
+      combined_array
+    end
+
+    def concat(a, b, axis)
+      if (axis == 0)
+        a + b
+      else
+        a.each_with_index.collect do |i, index|
+          concat(i, b[index], axis - 1)
+        end
+      end
     end
 
     def process_function_op(a, child_context, op)
