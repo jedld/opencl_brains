@@ -63,6 +63,19 @@ RSpec.describe TensorStream::Operation do
       expect(tf.reshape(t, [2, -1]).eval).to eq([[1, 1, 1, 2, 2, 2, 3, 3, 3],
                          [4, 4, 4, 5, 5, 5, 6, 6, 6]])
     end
+
+    it "should fail if dimensions do not match" do
+      t = [[[1, 1, 1],
+            [2, 2, 2]],
+          [[3, 3, 3],
+          [4, 4, 4]],
+          [[5, 5, 5],
+          [6, 6, 6]]]
+      expect {
+        tf.reshape(t,[3,2,2]).eval
+      }.to raise_exception
+
+    end
   end
 
   context ".equal" do

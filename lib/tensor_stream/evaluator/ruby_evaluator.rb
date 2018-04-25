@@ -49,7 +49,6 @@ module TensorStream
     
     protected
 
-
     def eval_variable(tensor, child_context)
       raise "variable #{tensor.name} not initalized" if tensor.value.nil?
       eval_tensor(tensor.value, child_context).tap do |val|
@@ -202,7 +201,7 @@ module TensorStream
 
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
-          
+
           reshape(arr.flatten, new_shape)
         else
           raise "unknown op #{tensor.operation}"
@@ -210,7 +209,6 @@ module TensorStream
         @context[tensor.name.to_sym] = result
       end
     end
-
     def eval_tensor(tensor, child_context)
       return tensor unless tensor.kind_of?(Tensor)
       return @context[tensor.name] if @context.has_key?(tensor.name)
@@ -237,6 +235,7 @@ module TensorStream
       dim = (arr.size / s)
       arr.each_slice(dim).collect do |slice|
         if (new_shape.size == 1)
+          fail "reshape dimen mismatch #{slice.size} != #{new_shape[0]}" if new_shape[0]!=-1 && slice.size != new_shape[0]
           slice
         else
           reshape(slice, new_shape.dup)
