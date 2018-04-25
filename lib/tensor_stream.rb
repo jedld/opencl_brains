@@ -203,7 +203,19 @@ module TensorStream
     options[:data_type] ||= :float32
     check_allowed_types(a, %w(float32 float64))
     TensorStream::Operation.new(:tanh, a, nil, options)
-    end
+  end
+
+  def self.log(a, options= {})
+    options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
+    TensorStream::Operation.new(:log, a, nil, options)
+  end
+
+  def self.exp(a, options = {})
+    options[:data_type] ||= :float32
+    check_allowed_types(a, %w(float32 float64))
+    TensorStream::Operation.new(:exp, a, nil, options)
+  end
 
   def self.matmul(a, b, transpose_a: false,
     transpose_b: false,

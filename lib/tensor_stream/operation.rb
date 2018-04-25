@@ -33,6 +33,10 @@ module TensorStream
   
       if tensor.kind_of?(Operation)
         case tensor.operation
+          when :exp
+            Operation.new(:exp, tensor.items[0], nil)
+          when :log
+            TensorStream.constant(1, constant_options) / tensor.items[0]
           when :stop_gradient
             return TensorStream.constant(0, constant_options)
           when :tanh

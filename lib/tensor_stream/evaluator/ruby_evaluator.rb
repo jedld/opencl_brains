@@ -99,35 +99,19 @@ module TensorStream
             TensorStream.pow(a,b)
           end
         when :tanh
-          begin
-            process_function_op(a, child_context, ->(a,b) { Math.tanh(a) } )
-          rescue TensorStream::FullEvalNotPossible => e
-            TensorStream.tanh(a)
-          end
+          call_op(:tanh, a, child_context, ->(a,b) { Math.tanh(a) })
         when :tan
-          begin
-            process_function_op(a, child_context, ->(a,b) { Math.tan(a) } )
-          rescue TensorStream::FullEvalNotPossible => e
-            TensorStream.tan(a)
-          end
+          call_op(:tan, a, child_context, ->(a,b) { Math.tan(a) })
         when :sec
-          begin
-            process_function_op(a, child_context, ->(a,b) { Math.sec(a) } )
-          rescue TensorStream::FullEvalNotPossible => e
-            TensorStream.sec(a)
-          end          
+          call_op(:sec, a, child_context, ->(a,b) { Math.sec(a) })        
         when :sin
-          begin
-            process_function_op(a, child_context, ->(a,b) { Math.sin(a) } )
-          rescue TensorStream::FullEvalNotPossible => e
-            TensorStream.sin(a)
-          end
+          call_op(:sin, a, child_context, ->(a,b) { Math.sin(a) })
         when :cos
-          begin
-            process_function_op(a, child_context, ->(a,b) { Math.cos(a) } )
-          rescue TensorStream::FullEvalNotPossible => e
-            TensorStream.cos(a)
-          end
+          call_op(:cos, a, child_context, ->(a,b) { Math.cos(a) })
+        when :log
+          call_op(:log, a, child_context, ->(a,b) { Math.log(a) } )
+        when :exp
+          call_op(:exp, a, child_context, ->(a,b) { Math.exp(a) } )
         when :stop_gradient
           eval(a, child_context)
         when :random_uniform
@@ -231,6 +215,14 @@ module TensorStream
     end
 
     private
+
+    def call_op(op, a, child_context, func)
+      begin
+        process_function_op(a, child_context, func )
+      rescue TensorStream::FullEvalNotPossible => e
+        TensorStream.send(op.to_sym, a)
+      end
+    end
 
     def derivative_builder(tensor, learning_rate)
       if tensor.kind_of?(Operation)
