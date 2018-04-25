@@ -131,12 +131,12 @@ module TensorStream
     TensorStream::Placeholder.new(dtype, nil, options[:shape])
   end
 
-  def self.random_uniform(shape: , dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
+  def self.random_uniform(shape , dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
     options = {shape: shape, dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name}
     TensorStream::Operation.new(:random_uniform, nil, nil, options)
   end
 
-  def self.random_normal(shape:, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
+  def self.random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
     options = {shape: shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
     TensorStream::Operation.new(:random_normal, nil, nil, options)
   end
@@ -244,7 +244,7 @@ module TensorStream
   def self.check_allowed_types(t, types)
     return t unless t.kind_of?(Tensor)
 
-    fail "Parameter data type passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
+    fail "Parameter data type #{t} passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
   end
 
   def self.dtype_eval(dtype, rank, value)
