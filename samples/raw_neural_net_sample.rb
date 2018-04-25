@@ -1,5 +1,6 @@
 require "bundler/setup"
 require 'tensor_stream'
+require 'pry-byebug'
 
 learning_rate = 0.1
 num_steps = 500
@@ -43,11 +44,11 @@ def neural_net(x)
 end
 
 def softmax(logits)
-  TensorStream.exp(logits) / TensorStream.reduce_sum(tf.exp(logits))
+  TensorStream.exp(logits) / TensorStream.reduce_sum(TensorStream.exp(logits))
 end
 
 # Construct model
 logits = neural_net(X)
 prediction = softmax(logits)
 
-binding.pry
+puts prediction.to_math

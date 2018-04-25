@@ -23,7 +23,7 @@ RSpec.describe TensorStream::Session do
 
     it "different values on multiple runs" do
       srand(1234)
-      vec = TensorStream.random_uniform(shape: [3])
+      vec = TensorStream.random_uniform([3])
       out1 = vec + 1
       out2 = vec + 2
 
@@ -35,7 +35,7 @@ RSpec.describe TensorStream::Session do
 
     it "uniform values on a single run" do
       srand(1234)
-      vec = TensorStream.random_uniform(shape: [3])
+      vec = TensorStream.random_uniform([3])
       out1 = vec + 1
       out2 = vec + 2
 

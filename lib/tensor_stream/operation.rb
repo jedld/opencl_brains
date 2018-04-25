@@ -147,6 +147,8 @@ module TensorStream
         "transpose(#{auto_math(items[0])})"
       when :shape
         "#{auto_math(items[0])}.shape"
+      when :exp
+        "e^#{auto_math(items[0])}"
       else
         fail "math form for #{operation}"
       end

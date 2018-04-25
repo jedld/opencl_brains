@@ -125,11 +125,11 @@ RSpec.describe TensorStream::Operation do
     ].each do |shape, expected, range_expected|
       describe "shape #{shape}" do
         it "generates random uniform values" do
-          expect(TensorStream.random_uniform(shape: shape).eval).to eq(expected)
+          expect(TensorStream.random_uniform(shape).eval).to eq(expected)
         end
 
         specify "with ranges" do
-          expect(TensorStream.random_uniform(shape: shape, minval: 0, maxval: 2).eval).to eq(range_expected)
+          expect(TensorStream.random_uniform(shape, minval: 0, maxval: 2).eval).to eq(range_expected)
         end
       end
     end
@@ -143,7 +143,7 @@ RSpec.describe TensorStream::Operation do
     ].each do |shape, expected|
       describe "shape #{shape}" do
         it "generates random normal values" do
-          expect(TensorStream.random_normal(shape: shape).eval).to eq(expected)
+          expect(TensorStream.random_normal(shape).eval).to eq(expected)
         end
       end
     end

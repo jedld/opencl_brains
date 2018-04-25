@@ -175,6 +175,8 @@ module TensorStream
     end
 
     def to_math
+      return @name if @value.nil?
+      
       if @value.kind_of?(Array)
         @value.collect { |v| v.kind_of?(Tensor) ? v.to_math : v }
       else

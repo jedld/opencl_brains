@@ -243,8 +243,9 @@ module TensorStream
 
   def self.check_allowed_types(t, types)
     return t unless t.kind_of?(Tensor)
+    return t if t.data_type.nil?
 
-    fail "Parameter data type #{t} passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
+    fail "Parameter data type #{t.data_type} passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
   end
 
   def self.dtype_eval(dtype, rank, value)
