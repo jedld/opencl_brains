@@ -161,6 +161,10 @@ module TensorStream
     TensorStream::Operation.new(:concat, values, nil, {axis: axis, name: name})
   end
 
+  def self.reshape(tensor, shape, name: nil)
+    TensorStream::Operation.new(:reshape, tensor, nil, {shape: shape, name: name})
+  end
+
   def self.add(a, b)
     a - b
   end

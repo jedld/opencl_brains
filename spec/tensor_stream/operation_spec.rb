@@ -31,6 +31,40 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".reshape" do
+    it "Reshapes a tensor." do
+      t = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+      expect(tf.reshape(t, [3, 3]).eval).to eq(
+        [[1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]])
+
+      t = [[[1, 1], [2, 2]],
+           [[3, 3], [4, 4]]]
+
+      expect(tf.reshape(t, [2, 4]).eval).to eq([[1, 1, 2, 2],
+        [3, 3, 4, 4]])
+    end
+
+    it "reshape to scalar" do
+      t = [7]
+      expect(tf.reshape(t, []).eval).to eq(7)
+    end
+
+    it "flattens a tensor" do
+      t = [[[1, 1, 1],
+            [2, 2, 2]],
+          [[3, 3, 3],
+          [4, 4, 4]],
+          [[5, 5, 5],
+          [6, 6, 6]]]
+      expect(tf.shape(t).eval).to eq([3, 2, 3])
+      expect(tf.reshape(t, [-1]).eval).to eq([1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6])
+      expect(tf.reshape(t, [2, -1]).eval).to eq([[1, 1, 1, 2, 2, 2, 3, 3, 3],
+                         [4, 4, 4, 5, 5, 5, 6, 6, 6]])
+    end
+  end
+
   context ".equal" do
     it "returns the truth value of two tensors" do
       a = TensorStream.constant(1.0)

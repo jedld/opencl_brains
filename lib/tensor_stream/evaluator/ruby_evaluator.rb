@@ -196,6 +196,14 @@ module TensorStream
           end
         when :div
           process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
+        when :reshape
+          arr = complete_eval(a, child_context)
+          new_shape = complete_eval(tensor.options[:shape], child_context)
+
+          flat_arr = arr.flatten
+          return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
+          
+          reshape(arr.flatten, new_shape)
         else
           raise "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -219,6 +227,22 @@ module TensorStream
     end
 
     private
+
+    def reshape(arr, new_shape)
+      return arr if new_shape.empty?
+      
+      s = new_shape.shift
+      return arr if s == -1
+
+      dim = (arr.size / s)
+      arr.each_slice(dim).collect do |slice|
+        if (new_shape.size == 1)
+          slice
+        else
+          reshape(slice, new_shape.dup)
+        end
+      end
+    end
 
     def call_op(op, a, child_context, func)
       begin
