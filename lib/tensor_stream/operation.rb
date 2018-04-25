@@ -27,7 +27,7 @@ module TensorStream
     end
 
     def self.derivative(tensor, dx, options = {})
-      constant_options = { dtype: tensor.data_type, shape: tensor.shape ? tensor.shape.shape : nil}
+      constant_options = { dtype: options[:dtype] || tensor.data_type, shape: options[:shape] || (tensor.shape ? tensor.shape.shape : nil)}
       return TensorStream.constant(1, constant_options) if tensor == dx
       return TensorStream.constant(0, constant_options) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
   
@@ -62,8 +62,8 @@ module TensorStream
           when :reduce_sum
             derivative(tensor.items[0], dx, options)
           when :matmul
-            derivative_a = derivative(tensor.items[0], dx, options)
-            derivative_b = derivative(tensor.items[1], dx, options)
+            derivative_a = derivative(tensor.items[0], dx, shape: tensor.items[1].shape.shape)
+            derivative_b = derivative(tensor.items[1], dx, shape: tensor.items[0].shape.shape)
 
             Operation.new(:matmul, derivative_a,  tensor.items[1], transpose_b: true,
                 name: "matrix_dx" ) +
