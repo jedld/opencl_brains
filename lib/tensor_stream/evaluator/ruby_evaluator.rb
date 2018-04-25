@@ -203,7 +203,7 @@ module TensorStream
           return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
 
           new_shape = fix_inferred_elements(new_shape, flat_arr.size)
-          reshape(flat_arr, new_shape)
+          TensorStream.constant(reshape(flat_arr, new_shape), dtype: a.data_type)
         else
           raise "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -226,7 +226,7 @@ module TensorStream
     end
 
     private
-
+    
     def fix_inferred_elements(shape, total_size)
       return shape if shape.empty?
 
