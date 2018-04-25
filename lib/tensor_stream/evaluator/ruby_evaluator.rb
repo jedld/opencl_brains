@@ -202,7 +202,8 @@ module TensorStream
           flat_arr = arr.flatten
           return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
 
-          reshape(arr.flatten, new_shape)
+          new_shape = fix_inferred_elements(new_shape, flat_arr.size)
+          reshape(flat_arr, new_shape)
         else
           raise "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -226,20 +227,27 @@ module TensorStream
 
     private
 
+    def fix_inferred_elements(shape, total_size)
+      return shape if shape.empty?
+
+      current_size = shape.inject(1) { |product, n|  n > 0 ? product * n : product }
+      inferred_size = total_size / current_size
+      shape.map { |s| s == -1 ? inferred_size : s }
+    end
+
     def reshape(arr, new_shape)
       return arr if new_shape.empty?
       
       s = new_shape.shift
-      return arr if s == -1
+
+      if new_shape.size == 0
+        fail "reshape dimen mismatch #{arr.size} != #{s}" if arr.size != s
+        return arr
+      end
 
       dim = (arr.size / s)
       arr.each_slice(dim).collect do |slice|
-        if (new_shape.size == 1)
-          fail "reshape dimen mismatch #{slice.size} != #{new_shape[0]}" if new_shape[0]!=-1 && slice.size != new_shape[0]
-          slice
-        else
-          reshape(slice, new_shape.dup)
-        end
+        reshape(slice, new_shape.dup)
       end
     end
 

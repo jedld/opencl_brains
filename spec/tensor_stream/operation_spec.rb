@@ -76,6 +76,26 @@ RSpec.describe TensorStream::Operation do
       }.to raise_exception
 
     end
+
+    it "inference" do
+      t = [[[1, 1, 1],
+            [2, 2, 2]],
+            [[3, 3, 3],
+            [4, 4, 4]],
+            [[5, 5, 5],
+            [6, 6, 6]]]
+
+      expect(tf.reshape(t, [-1, 9]).eval).to eq([[1, 1, 1, 2, 2, 2, 3, 3, 3],
+        [4, 4, 4, 5, 5, 5, 6, 6, 6]])
+      
+      expect(tf.reshape(t, [ 2, -1, 3]).eval).to eq(
+        [[[1, 1, 1],
+          [2, 2, 2],
+          [3, 3, 3]],
+          [[4, 4, 4],
+          [5, 5, 5],
+          [6, 6, 6]]])
+    end
   end
 
   context ".equal" do
