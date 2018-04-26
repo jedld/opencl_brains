@@ -158,6 +158,12 @@ RSpec.describe TensorStream::Operation do
       expect(TensorStream.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
       expect(TensorStream.reduce_sum(x, [0, 1]).eval).to eq(6)
     end
+
+    specify "computes the gradients properly" do
+      a = tf.constant([[1,2,3],[4,5,6]])
+      op = tf.reduce_sum(a)
+      expect(tf.gradients(op,[a]).eval).to eq([[[1, 1, 1], [1, 1, 1]]])
+    end
   end
 
   context ".abs" do
