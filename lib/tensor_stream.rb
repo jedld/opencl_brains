@@ -189,6 +189,14 @@ module TensorStream
     a**e
   end
 
+  def self.abs(x, name: nil)
+    TensorStream::Operation.new(:abs, x, nil, name: name)
+  end
+
+  def self.sign(x, name: nil)
+    TensorStream::Operation.new(:sign, x, nil, name: name)
+  end
+
   def self.sin(a, options = {})
     options[:data_type] ||= :float32
     check_allowed_types(a, %w(float32 float64))

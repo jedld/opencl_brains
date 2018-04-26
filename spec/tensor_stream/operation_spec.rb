@@ -160,6 +160,10 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".abs" do
+
+  end
+
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = TensorStream.constant([[2, 2], [3, 3]])
@@ -214,18 +218,50 @@ RSpec.describe TensorStream::Operation do
   end
 end
 
+  context ".abs" do
+    let(:tf) { TensorStream }
+    it "Computes the absolute value of a tensor" do
+      tf = TensorStream
+
+      a = [[1,2],[-1, 2], [3,-3]]
+      b = -1.123
+
+      expect(tf.abs(a).eval).to eq([[1, 2], [1, 2], [3, 3]])
+      expect(tf.abs(b).eval).to eq(1.123)
+    end
+
+    specify "should compute for the gradient" do
+      a = tf.constant([[1,2],[-1, 2], [3,-3]])
+      expect(tf.gradients(tf.abs(a),[a]).eval).to eq([[[ 1,  1],
+        [-1,  1],
+        [ 1, -1]]])
+    end
+  end
+
+  context ".sign" do
+    let(:tf) { TensorStream }
+    it "Returns an element-wise indication of the sign of a number." do
+      tf = TensorStream
+
+      a = tf.constant([[1,2],[-1, 2], [3,-3]])
+      b = -1.123
+
+      expect(tf.sign(a).eval).to eq([[1, 1], [-1, 1], [1, -1]])
+      expect(tf.sign(b).eval).to eq(-1.0)
+    end
+  end
 
   context ".matmul" do
     it "performs matrix multiplication" do
-      TensorStream.program do |tf|
-        a = tf.constant([1, 2, 3, 4, 5, 6], shape: [2, 3])
-        b = tf.constant([7, 8, 9, 10, 11, 12], shape: [3, 2])
-        c = tf.matmul(a, b)
-        expect(c.eval).to eq([[ 58,  64],
-                              [139, 154]])
-        d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
-        expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
-      end
+      tf = TensorStream
+
+      a = tf.constant([1, 2, 3, 4, 5, 6], shape: [2, 3])
+      b = tf.constant([7, 8, 9, 10, 11, 12], shape: [3, 2])
+      c = tf.matmul(a, b)
+      expect(c.eval).to eq([[ 58,  64],
+                            [139, 154]])
+      d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
+      expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
     end
   end
 

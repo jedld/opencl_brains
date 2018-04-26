@@ -33,6 +33,8 @@ module TensorStream
   
       if tensor.kind_of?(Operation)
         case tensor.operation
+          when :abs
+            derivative(tensor.items[0], dx, options) * Operation.new(:sign, tensor.items[0], nil)
           when :exp
             Operation.new(:exp, tensor.items[0], nil)
           when :log

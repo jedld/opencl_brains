@@ -65,6 +65,22 @@ module TensorStream
       b = resolve_placeholder(tensor.items[1], child_context) if tensor.items
 
       case(tensor.operation)
+        when :sign
+          a = complete_eval(a, child_context)
+
+          func = ->(x,b) {
+            if x == 0 || (x.kind_of?(Float) && x.nan?)
+                0
+            elsif x < 0
+              -1
+            elsif x > 0
+              1
+            else
+              fail "cannot be here"
+            end
+          }
+
+          call_op(:sign, a, child_context, func )
         when :equal
           a = complete_eval(a, child_context)
           b = complete_eval(b, child_context)
@@ -101,6 +117,8 @@ module TensorStream
           values = complete_eval(a, child_context)
           res = concat_array(values, tensor.options[:axis])
           TensorStream.constant(res)
+        when :abs
+          call_op(:abs, a, child_context, ->(a,b) { a.abs })
         when :tanh
           call_op(:tanh, a, child_context, ->(a,b) { Math.tanh(a) })
         when :tan
@@ -191,6 +209,7 @@ module TensorStream
           TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
         when :gradients
           b.collect do |xs|
+            fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)
             Operation.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
           end
         when :div
@@ -321,13 +340,15 @@ module TensorStream
 
     def process_function_op(a, child_context, op)
       # ruby scalar
-      if !a.kind_of?(Tensor) || a.shape.rank == 0
+      if (a.kind_of?(Tensor) && a.shape.rank > 0) || a.kind_of?(Array)
+        TensorStream.constant(constant_op(a, 0, child_context, op))
+      elsif !a.kind_of?(Tensor) || a.shape.rank == 0
         v = eval(a, child_context)
         raise FullEvalNotPossible.new if v.is_a?(Tensor) && !v.is_const
 
         TensorStream.constant(op.(v, 0), dtype: TensorStream.val_to_dtype(v))
-      elsif a.shape.rank > 0
-          TensorStream.constant(constant_op(a, 0, child_context, op))
+      else
+        fail "cannot be here"
       end
     end
 
@@ -393,8 +414,8 @@ module TensorStream
     end
 
     def constant_op(vector, constant, child_context, op = ->(a,b) { a + b }, switch = false)
-      eval_vector = eval(vector, child_context)
-      constant = eval(constant, child_context)
+      eval_vector = complete_eval(vector, child_context)
+      constant = complete_eval(constant, child_context)
 
       raise FullEvalNotPossible.new if eval_vector.kind_of?(Tensor) || constant.kind_of?(Tensor)
 
