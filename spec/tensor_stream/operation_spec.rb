@@ -1,6 +1,5 @@
 require "spec_helper"
 require 'benchmark'
-require 'matrix'
 
 RSpec.describe TensorStream::Operation do
   before(:each) do

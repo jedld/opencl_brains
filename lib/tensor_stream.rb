@@ -1,7 +1,6 @@
 require "tensor_stream/version"
-require 'opencl_ruby_ffi'
 require 'deep_merge'
-require 'narray_ffi'
+require 'matrix'
 require 'tensor_stream/evaluator/ruby_evaluator'
 require 'tensor_stream/graph_keys'
 require 'tensor_stream/types'
@@ -14,9 +13,8 @@ require 'tensor_stream/operation'
 require 'tensor_stream/placeholder'
 require 'tensor_stream/control_flow'
 require 'tensor_stream/trainer'
+require 'tensor_stream/nn/nn_ops'
 # require 'tensor_stream/libraries/layers'
-require "tensor_stream/gemm/gemm"
-require "tensor_stream/sigmoid/sigmoid"
 require "tensor_stream/monkey_patches/integer"
 
 module TensorStream
@@ -51,6 +49,8 @@ module TensorStream
       TensorStream::Variable.new(dtype || :int32, 0, [], common_options)
     elsif value.is_a?(Float)
       TensorStream::Variable.new(dtype || :float32, 0, [], common_options)
+    else
+      TensorStream::Variable.new(dtype, 0, nil, common_options)
     end
   end
 

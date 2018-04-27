@@ -11,3 +11,15 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 end
+
+def tr(t, places = 4)
+  if t.kind_of?(Array)
+    return t.collect do |v|
+      tr(v)
+    end
+  end
+
+  return t unless t.kind_of?(Float)
+
+  t.round(places)
+end

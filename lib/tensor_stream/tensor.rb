@@ -50,7 +50,7 @@ module TensorStream
           end
 
           @value = options[:value].collect do |v|
-            v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : TensorStream.constant(Tensor.cast_dtype(v, data_type), dtype: data_type)
+            v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
           end
         elsif shape.size > 0
           @value = reshape(options[:value], shape.dup)
