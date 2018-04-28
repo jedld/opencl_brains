@@ -165,10 +165,6 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
-  context ".abs" do
-
-  end
-
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = TensorStream.constant([[2, 2], [3, 3]])
@@ -384,6 +380,21 @@ end
           [[4.0, 4.0], [5.0, 5.0]]
         ])
       end
+  end
+
+  context ".div" do
+    let(:a) { tf.constant(2.5) }
+    let(:b) { tf.constant(3.1) }
+
+    it "divides to tensors" do
+      op = a / b
+      expect(tr(op.eval)).to eq(0.8065)
+    end
+
+    it "supports gradients" do
+      grad = tf.gradients(a/b, [a,b])
+      expect(tr(grad.eval)).to eq([0.3226, -0.2601])
+    end
   end
 
   context "combination of functions" do
