@@ -38,7 +38,7 @@ module TensorStream
           when :exp
             Operation.new(:exp, tensor.items[0], nil)
           when :log
-            TensorStream.constant(1, constant_options) / tensor.items[0]
+            TensorStream.constant(1, constant_options) / _ds(tensor.items[0])
           when :stop_gradient
             return TensorStream.constant(0, constant_options)
           when :tanh
@@ -54,13 +54,13 @@ module TensorStream
           when :sub
             derivative(tensor.items[0], dx, options) - derivative(tensor.items[1], dx, options)
           when :pow
-            tensor.items[1] * (tensor.items[0] ** (tensor.items[1] - 1)) * derivative(tensor.items[0], dx, options)
+            _ds(tensor.items[1]) * (_ds(tensor.items[0]) ** (_ds(tensor.items[1]) - 1)) * derivative(tensor.items[0], dx, options)
           when :div
             # apply the quotient rule
-            ( derivative(tensor.items[0], dx, options) * tensor.items[1] - tensor.items[0] * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
+            ( derivative(tensor.items[0], dx, options) * _ds(tensor.items[1]) - _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
           when :mul
             # apply the product rule
-            derivative(tensor.items[0], dx, options) * tensor.items[1] + tensor.items[0] * derivative(tensor.items[1], dx, options)
+            derivative(tensor.items[0], dx, options) * _ds(tensor.items[1]) + _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options)
           when :reduce_sum
             derivative(tensor.items[0], dx, options)
           when :matmul
@@ -82,6 +82,17 @@ module TensorStream
         end
       else
         TensorStream.constant(0, constant_options)
+      end
+    end
+
+    def self._ds(tensor)
+      return tensor unless tensor.kind_of?(Operation)
+
+      case tensor.operation
+      when :reduce_sum
+        tensor.items[0]
+      else
+        tensor
       end
     end
 

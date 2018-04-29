@@ -13,7 +13,7 @@ RSpec.describe TensorStream::NN do
     specify "gradients" do
       outputs = tf.constant([1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
       f = tf.nn.softmax(outputs)
-      expect(tf.gradients(f, [outputs]).eval).to eq([])
+      expect(tf.gradients(f, [outputs]).eval).to eq([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     end
   end
 end
