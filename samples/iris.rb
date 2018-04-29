@@ -100,6 +100,7 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 init = TensorStream.global_variables_initializer()
 
 TensorStream.Session do |sess|
+  puts "init vars"
   sess.run(init)
   puts "Testing the untrained network..."
   loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })

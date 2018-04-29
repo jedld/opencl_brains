@@ -33,17 +33,17 @@ module TensorStream
     end
 
     def complete_eval(tensor, context)
-      begin
+      Kernel.loop do
         old_tensor = tensor
         tensor = run(tensor, context)
 
-        if tensor.kind_of?(Array)
+        if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
           tensor = tensor.map { |t| complete_eval(t, context) }
         end
 
         return tensor if old_tensor == tensor
-      end while tensor.kind_of?(Tensor)
-      tensor
+        return tensor if !tensor.is_a?(Tensor)
+      end
     end
 
     protected
@@ -59,10 +59,10 @@ module TensorStream
 
     def eval_operation(tensor, child_context)
       begin
-        return @context[tensor.name.to_sym] if @context.has_key?(tensor.name.to_sym)
+        return @context[tensor.name.to_sym] if @context.key?(tensor.name.to_sym)
 
-        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items
-        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items
+        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
+        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
         when :sign
@@ -100,7 +100,11 @@ module TensorStream
             a + b
           end
         when :sub
-          process_vector_math_op(a, b, child_context, ->(t, u) { t - u })
+          begin
+            process_vector_math_op(a, b, child_context, ->(t, u) { t - u })
+          rescue TensorStream::FullEvalNotPossible => e
+            a - b
+          end
         when :mul
           begin
             process_vector_math_op(a, b, child_context, ->(t, u) { t * u })
@@ -163,7 +167,7 @@ module TensorStream
           val = run(tensor.items[0], child_context)
           axis = tensor.options[:axis]
           keep_dims = tensor.options[:keepdims]
-          res = if axis.kind_of?(Array)
+          res = if axis.is_a?(Array)
                   axis.each do |x|
                     val = reduce_axis(x, val, keep_dims, child_context)
                   end
@@ -205,7 +209,7 @@ module TensorStream
 
           matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-          TensorStream.constant((Matrix[*matrix_a] *  Matrix[*matrix_b]).to_a)
+          TensorStream.constant((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
         when :gradients
           b.collect do |xs|
             fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)

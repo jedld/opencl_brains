@@ -150,19 +150,19 @@ module TensorStream
   end
 
   def self.zeros(shape, dtype: :float32, name: nil)
-    TensorStream::Operation.new(:zeros, nil, nil, {shape: shape})
+    TensorStream::Operation.new(:zeros, nil, nil, shape: shape)
   end
 
   def self.reduce_sum(input_tensor, axis = nil, keepdims: false)
-    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, {axis: axis, keepdims: keepdims})
+    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims)
   end
 
   def self.concat(values, axis, name: 'concat')
-    TensorStream::Operation.new(:concat, values, nil, {axis: axis, name: name})
+    TensorStream::Operation.new(:concat, values, nil, axis: axis, name: name)
   end
 
   def self.reshape(tensor, shape, name: nil)
-    TensorStream::Operation.new(:reshape, tensor, nil, {shape: shape, name: name})
+    TensorStream::Operation.new(:reshape, tensor, nil, shape: shape, name: name)
   end
 
   def self.add(a, b)
