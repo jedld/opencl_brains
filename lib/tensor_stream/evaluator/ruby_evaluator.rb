@@ -300,7 +300,7 @@ module TensorStream
           TensorStream.constant(constant_op(eval_b, eval_a, child_context, op, true))
         end
       elsif get_rank(eval_a) > 0
-        if eval_b.is_a?(Tensor) && get_rank(eval_b) > 0
+        if get_rank(eval_b) > 0
           TensorStream.constant(vector_op(eval_a, eval_b, child_context, op))
         else
           TensorStream.constant(constant_op(eval_a, eval_b, child_context, op))
@@ -431,7 +431,11 @@ module TensorStream
 
       v_a.each_with_index.collect do |item, index|
         if item.is_a?(Array)
-          constant_op(item, v_b[index], child_context, op)
+          if get_rank(v_a) > get_rank(v_b)
+            vector_op(item, v_b, child_context, op) # derank v1
+          else
+            constant_op(item, v_b[index], child_context, op)
+          end
         else
           if item.respond_to?(:value)
             op.(item.value, v_b[index].value)

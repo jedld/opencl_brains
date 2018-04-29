@@ -58,6 +58,7 @@ n_hidden_1 = 32 # 1st layer number of neurons
 n_hidden_2 = 32 # 2nd layer number of neurons
 num_classes = 3 # MNIST total classes (0-9 digits)
 num_input = 4
+training_epochs = 10
 
 tf = TensorStream
 
@@ -104,5 +105,10 @@ TensorStream.Session do |sess|
   sess.run(init)
   puts "Testing the untrained network..."
   loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })
-  puts "loss #{loss}"
+  puts "loss before training"
+  (0..training_epochs).each do |epoch|
+    sess.run(optimizer, feed_dict: { X => x_train, Y => y_train })
+  end
+  loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })
+  puts "loss after training #{loss}"
 end

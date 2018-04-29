@@ -382,6 +382,25 @@ end
       end
   end
 
+  context ".sub" do
+    let(:a) { tf.constant([1.0, 2.0, 3.0])}
+    let(:b) { tf.constant([0.1, 0.2, 0.3])}
+    let(:c) { tf.constant(0.1) }
+    let(:m) { tf.constant([[1.0, 2.0, 3.0], [2.0, 3.0 ,4.0], [5.0, 6.0, 7.0], [8.0, 9.0, 10.0]]) }
+
+    it "substracts two arrays" do
+      expect((a - b).eval).to eq([0.9, 1.8, 2.7])
+    end
+
+    it "substracts an array and a constant" do
+      expect((a - c).eval).to eq([0.9, 1.9, 2.9])
+    end
+
+    it "substracts a matrix and an array" do
+      expect((m - a).eval).to eq([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [4.0, 4.0, 4.0], [7.0, 7.0, 7.0]])
+    end
+  end
+
   context ".div" do
     let(:a) { tf.constant(2.5) }
     let(:b) { tf.constant(3.1) }
