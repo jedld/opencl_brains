@@ -196,10 +196,10 @@ module TensorStream
         s = complete_eval(a, child_context) || tensor.shape.shape
 
         func = if tensor.operation == :zeros
-          ->() { tensor.data_type == :int32 ? 0 : 0.0 }
-        else
-          ->() { tensor.data_type == :int32 ? 1 : 1.0 }
-        end
+                 ->() { tensor.data_type == :int32 ? 0 : 0.0 }
+               else
+                 ->() { tensor.data_type == :int32 ? 1 : 1.0 }
+               end
 
         if s.is_a?(Array) && s.size == 0
           cons(func.call())
