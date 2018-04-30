@@ -2,11 +2,27 @@ require "tensor_stream/evaluator/operation_helpers/random_gaussian"
 require 'tensor_stream/math_gradients'
 
 module TensorStream
-  class FullEvalNotPossible < StandardError
+  class FullEvalNotPossible < Exception
   end
+
+  class EvaluatorExcecutionException < Exception
+    attr_reader :tensor
+
+    def initialize(exception, tensor)
+      @exception = exception
+    end
+
+    def wrapped_exception
+      @exception
+    end
+  end
+
   ## PURE ruby evaluator used for testing and development
   class RubyEvaluator
     attr_accessor :retain
+
+    include TensorStream::OpHelper
+
     def initialize(session, context)
       @session = session
       @context = context
@@ -42,7 +58,7 @@ module TensorStream
         end
 
         return tensor if old_tensor == tensor
-        return tensor if !tensor.is_a?(Tensor)
+        return tensor unless tensor.is_a?(Tensor)
       end
     end
 
@@ -58,183 +74,177 @@ module TensorStream
     end
 
     def eval_operation(tensor, child_context)
-      begin
-        return @context[tensor.name.to_sym] if @context.key?(tensor.name.to_sym)
+      return @context[tensor.name.to_sym] if @context.key?(tensor.name.to_sym)
 
-        a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
-        b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
+      a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
+      b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
-        case tensor.operation
-        when :sign
-          a = complete_eval(a, child_context)
+      case tensor.operation
+      when :sign
+        a = complete_eval(a, child_context)
 
-          func = lambda { |x, _b|
-            if x == 0 || (x.is_a?(Float) && x.nan?)
-              0
-            elsif x < 0
-              -1
-            elsif x > 0
-              1
-            else
-              fail "cannot be here"
-            end
-          }
-
-          call_op(:sign, a, child_context, func )
-        when :equal
-          a = complete_eval(a, child_context)
-          b = complete_eval(b, child_context)
-
-          (a == b)
-        when :slice
-          f = run(a, child_context)
-          index = run(b, child_context)
-
-          f[index]
-        when :negate
-          process_vector_math_op(a, nil, child_context, ->(t, _u) { -t })
-        when :add
-          begin
-            process_vector_math_op(a, b, child_context, ->(t, u) { t + u })
-          rescue TensorStream::FullEvalNotPossible => e
-            a + b
-          end
-        when :sub
-          begin
-            process_vector_math_op(a, b, child_context, ->(t, u) { t - u })
-          rescue TensorStream::FullEvalNotPossible => e
-            a - b
-          end
-        when :mul
-          begin
-            process_vector_math_op(a, b, child_context, ->(t, u) { t * u })
-          rescue TensorStream::FullEvalNotPossible
-            a * b
-          end
-        when :pow
-          begin
-            process_vector_math_op(a, b, child_context, ->(t, u) { t**u })
-          rescue TensorStream::FullEvalNotPossible
-            TensorStream.pow(a,b)
-          end
-        when :concat
-          values = complete_eval(a, child_context)
-          res = concat_array(values, tensor.options[:axis])
-          TensorStream.constant(res)
-        when :abs
-          call_op(:abs, a, child_context, ->(t, _b) { t.abs })
-        when :tanh
-          call_op(:tanh, a, child_context, ->(t, _b) { Math.tanh(t) })
-        when :tan
-          call_op(:tan, a, child_context, ->(t, _b) { Math.tan(t) })
-        when :sec
-          call_op(:sec, a, child_context, ->(t, _b) { Math.sec(t) })
-        when :sin
-          call_op(:sin, a, child_context, ->(t, _b) { Math.sin(t) })
-        when :cos
-          call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
-        when :log
-          call_op(:log, a, child_context, ->(t, _b) { Math.log(t) } )
-        when :exp
-          call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
-        when :stop_gradient
-          run(a, child_context)
-        when :random_uniform
-          maxval = tensor.options.fetch(:maxval, 1)
-          minval = tensor.options.fetch(:minval, 0)
-
-          generator = ->() { rand * (maxval - minval) + minval }
-          TensorStream.constant(generate_vector(tensor.options[:shape], generator: generator ))
-        when :random_normal
-          r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev))
-          generator = ->() { r.rand }
-
-          TensorStream.constant(generate_vector(tensor.options[:shape], generator: generator ))
-        when :flow_group
-          tensor.items.each do |item| run(item, child_context) end
-          nil
-        when :assign
-          assign = tensor.items[0] || tensor
-          assign.value = run(tensor.items[1], child_context)
-          assign.value
-        when :assign_add
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a + b })
-          tensor.items[0].value
-        when :assign_sub
-          tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
-          tensor.items[0].value
-        when :reduce_sum
-          val = run(tensor.items[0], child_context)
-          axis = tensor.options[:axis]
-          keep_dims = tensor.options[:keepdims]
-          res = if axis.is_a?(Array)
-                  axis.each do |x|
-                    val = reduce_axis(x, val, keep_dims, child_context)
-                  end
-
-                  val.flatten.reduce(:+)
-                else
-                  reduce_axis(axis, val, keep_dims, child_context)
-                end
-          TensorStream.constant(res)
-        when :transpose
-          matrix_a = run(a, child_context)
-          TensorStream.constant(matrix_a.transpose)
-        when :eye
-          rows = complete_eval(a, child_context)
-          columns = complete_eval(b, child_context)
-
-          rows.times.collect do |index|
-            columns.times.collect do |col|
-              if tensor.data_type == :float32
-                index == col ? 1.0 : 0.0
-              else
-                index == col ? 1 : 0
-              end
-            end
-          end
-        when :zeros
-          if tensor.shape.shape.size == 0
-            TensorStream.constant(0)
+        func = lambda { |x, _b|
+          if x == 0 || (x.is_a?(Float) && x.nan?)
+            0
+          elsif x < 0
+            -1
+          elsif x > 0
+            1
           else
-            TensorStream.constant(generate_vector(tensor.shape.shape, generator: ->() { 0.0 } ))
+            fail 'assert: cannot be here'
           end
-        when :shape
-          input = complete_eval(a, child_context)
+        }
 
-          TensorStream.constant(shape_eval(input))
-        when :matmul
-          matrix_a = complete_eval(a, child_context)
-          matrix_b = complete_eval(b, child_context)
+        call_op(:sign, a, child_context, func)
+      when :equal
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
 
-          matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
-          matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
-          TensorStream.constant((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
-        when :gradients
-          b.collect do |xs|
-            fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)
-            TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
+        (a == b)
+      when :slice
+        f = run(a, child_context)
+        index = run(b, child_context)
+
+        f[index]
+      when :negate
+        call_vector_op(:negate, a, nil, child_context, ->(t, _u) { -t })
+      when :add
+        call_vector_op(:add, a, b, child_context, ->(t, u) { t + u })
+      when :sub
+        call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
+      when :mul
+        call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
+      when :pow
+        call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
+      when :concat
+        values = complete_eval(a, child_context)
+        res = concat_array(values, tensor.options[:axis])
+        cons(res)
+      when :abs
+        call_op(:abs, a, child_context, ->(t, _b) { t.abs })
+      when :tanh
+        call_op(:tanh, a, child_context, ->(t, _b) { Math.tanh(t) })
+      when :tan
+        call_op(:tan, a, child_context, ->(t, _b) { Math.tan(t) })
+      when :sec
+        call_op(:sec, a, child_context, ->(t, _b) { Math.sec(t) })
+      when :sin
+        call_op(:sin, a, child_context, ->(t, _b) { Math.sin(t) })
+      when :cos
+        call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
+      when :log
+        call_op(:log, a, child_context, ->(t, _b) { Math.log(t) } )
+      when :exp
+        call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
+      when :stop_gradient
+        run(a, child_context)
+      when :random_uniform
+        maxval = tensor.options.fetch(:maxval, 1)
+        minval = tensor.options.fetch(:minval, 0)
+
+        generator = ->() { rand * (maxval - minval) + minval }
+        cons(generate_vector(tensor.options[:shape], generator: generator ))
+      when :random_normal
+        r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev))
+        generator = ->() { r.rand }
+
+        cons(generate_vector(tensor.options[:shape], generator: generator ))
+      when :flow_group
+        tensor.items.each { |item| run(item, child_context) }
+        nil
+      when :assign
+        assign = tensor.items[0] || tensor
+        assign.value = run(tensor.items[1], child_context)
+        assign.value
+      when :assign_add
+        tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a + b })
+        tensor.items[0].value
+      when :assign_sub
+        tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
+        tensor.items[0].value
+      when :reduce_sum
+        val = run(tensor.items[0], child_context)
+        axis = tensor.options[:axis]
+        keep_dims = tensor.options[:keepdims]
+        res = if axis.is_a?(Array)
+                axis.each do |x|
+                  val = reduce_axis(x, val, keep_dims, child_context)
+                end
+
+                val.flatten.reduce(:+)
+              else
+                reduce_axis(axis, val, keep_dims, child_context)
+              end
+        cons(res)
+      when :transpose
+        matrix_a = run(a, child_context)
+        cons(matrix_a.transpose)
+      when :eye
+        rows = complete_eval(a, child_context)
+        columns = complete_eval(b, child_context)
+
+        rows.times.collect do |index|
+          columns.times.collect do |col|
+            if tensor.data_type == :float32
+              index == col ? 1.0 : 0.0
+            else
+              index == col ? 1 : 0
+            end
           end
-        when :div
-          process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
-        when :reshape
-          arr = complete_eval(a, child_context)
-          new_shape = complete_eval(tensor.options[:shape], child_context)
-
-          flat_arr = arr.flatten
-          return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
-
-          new_shape = fix_inferred_elements(new_shape, flat_arr.size)
-          TensorStream.constant(reshape(flat_arr, new_shape), dtype: a.data_type)
-        else
-          fail "unknown op #{tensor.operation}"
-        end.tap do |result|
-          @context[tensor.name.to_sym] = result
         end
-      rescue StandardError => e
-        puts "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"
-        raise e
+      when :zeros, :ones
+        s = complete_eval(a, child_context) || tensor.shape.shape
+
+        func = if tensor.operation == :zeros
+          ->() { tensor.data_type == :int32 ? 0 : 0.0 }
+        else
+          ->() { tensor.data_type == :int32 ? 1 : 1.0 }
+        end
+
+        if s.is_a?(Array) && s.size == 0
+          cons(func.call())
+        else
+          s = [s.to_i] unless s.is_a?(Array)
+          cons(generate_vector(s, generator: func))
+        end
+      when :shape
+        input = complete_eval(a, child_context)
+
+        cons(shape_eval(input))
+      when :matmul
+        matrix_a = complete_eval(a, child_context)
+        matrix_b = complete_eval(b, child_context)
+
+        matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
+        matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+        cons((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
+      when :gradients
+        b.collect do |xs|
+          fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)
+          TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
+        end
+      when :div
+        process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
+      when :reshape
+        arr = complete_eval(a, child_context)
+        new_shape = complete_eval(tensor.options[:shape], child_context)
+
+        flat_arr = arr.flatten
+        return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
+
+        new_shape = fix_inferred_elements(new_shape, flat_arr.size)
+        cons(reshape(flat_arr, new_shape), dtype: a.data_type)
+      else
+        fail "unknown op #{tensor.operation}"
+      end.tap do |result|
+        @context[tensor.name.to_sym] = result
       end
+    rescue EvaluatorExcecutionException => e
+      raise e
+    rescue StandardError => e
+      puts e.message
+      puts e.backtrace.join("\n")
+      raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"
     end
 
     def eval_tensor(tensor, child_context)
@@ -279,11 +289,15 @@ module TensorStream
     end
 
     def call_op(op, a, child_context, func)
-      begin
-        process_function_op(a, child_context, func )
-      rescue TensorStream::FullEvalNotPossible => e
-        TensorStream.send(op.to_sym, a)
-      end
+      process_function_op(a, child_context, func)
+    rescue TensorStream::FullEvalNotPossible
+      TensorStream.send(op.to_sym, a)
+    end
+
+    def call_vector_op(op, a, b, child_context, func)
+      process_vector_math_op(a, b,  child_context, func)
+    rescue TensorStream::FullEvalNotPossible
+      TensorStream.send(op.to_sym, a, b)
     end
 
     def process_vector_math_op(a, b,  child_context, op)

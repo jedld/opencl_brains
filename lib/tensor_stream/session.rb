@@ -1,6 +1,5 @@
 module TensorStream
   class Session
-
     def initialize(evaluator = TensorStream::RubyEvaluator)
       @evaluator_class = evaluator
     end
@@ -12,18 +11,18 @@ module TensorStream
     def last_session_context
       @last_session_context
     end
-  
+
     def run(*args)
-      options = if args.last.kind_of?(Hash)
+      options = if args.last.is_a?(Hash)
         args.pop
       else
         {}
       end
       context = {}
 
-      #scan for placeholders and assign value
+      # scan for placeholders and assign value
       options[:feed_dict].keys.each do |k|
-        if k.kind_of?(Placeholder)
+        if k.is_a?(Placeholder)
           context[k.name.to_sym] = options[:feed_dict][k].kind_of?(Tensor) ? options[:feed_dict][k] : TensorStream.constant(options[:feed_dict][k], dtype: k.data_type)
         end
       end if options[:feed_dict]

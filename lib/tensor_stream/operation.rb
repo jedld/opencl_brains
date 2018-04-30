@@ -92,6 +92,12 @@ module TensorStream
         "#{auto_math(items[0])}.shape"
       when :exp
         "e^#{auto_math(items[0])}"
+      when :ones
+        "ones(#{items[0]})"
+      when :flow_group
+        "flow_group(#{items.collect { |i| auto_math(i)}.join(',')})"
+      when :zeros
+        "zeros(#{items[0]})"
       else
         fail "math form for #{operation}"
       end

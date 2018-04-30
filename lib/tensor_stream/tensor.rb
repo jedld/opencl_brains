@@ -236,7 +236,7 @@ module TensorStream
     end
 
     def reshape(arr, shape)
-      if arr.kind_of?(Array)
+      if arr.is_a?(Array)
         return arr if shape.size < 2
         slice = shape.shift
         arr.each_slice(slice).collect do |s|
@@ -245,6 +245,8 @@ module TensorStream
       else
         return arr if shape.size < 1
         slice = shape.shift
+        return arr if slice.nil?
+
         slice.times.collect do |s|
           reshape(arr, shape.dup)
         end
@@ -252,8 +254,8 @@ module TensorStream
     end
 
     def auto_wrap(operand)
-      if !operand.kind_of?(Tensor)
-        TensorStream.constant(operand, dtype: @data_type || Tensor.detect_type(operand) )
+      if !operand.is_a?(Tensor)
+        TensorStream.constant(operand, dtype: @data_type || Tensor.detect_type(operand))
       else
         operand
       end

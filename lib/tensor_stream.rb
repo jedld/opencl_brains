@@ -1,7 +1,7 @@
 require "tensor_stream/version"
 require 'deep_merge'
 require 'matrix'
-require 'tensor_stream/evaluator/ruby_evaluator'
+require 'tensor_stream/helpers/op_helper'
 require 'tensor_stream/graph_keys'
 require 'tensor_stream/types'
 require 'tensor_stream/graph'
@@ -14,10 +14,13 @@ require 'tensor_stream/placeholder'
 require 'tensor_stream/control_flow'
 require 'tensor_stream/trainer'
 require 'tensor_stream/nn/nn_ops'
+require 'tensor_stream/evaluator/ruby_evaluator'
 # require 'tensor_stream/libraries/layers'
 require "tensor_stream/monkey_patches/integer"
 
 module TensorStream
+  extend TensorStream::OpHelper
+
   def self.float32
     Types.float32
   end
@@ -150,7 +153,11 @@ module TensorStream
   end
 
   def self.zeros(shape, dtype: :float32, name: nil)
-    TensorStream::Operation.new(:zeros, nil, nil, shape: shape)
+    op(:zeros, shape, nil, data_type: dtype, name: name)
+  end
+
+  def self.ones(shape, dtype: :float32, name: nil)
+    op(:ones, shape, nil, data_type: dtype, name: name)
   end
 
   def self.reduce_sum(input_tensor, axis = nil, keepdims: false)

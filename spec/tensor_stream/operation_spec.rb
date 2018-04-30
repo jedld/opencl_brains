@@ -148,6 +148,20 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".zeros" do
+    it "generates a zero tensor" do
+      a = tf.zeros([2,2])
+      expect(a.eval).to eq([[0.0, 0.0], [0.0, 0.0]])
+    end
+  end
+
+  context ".ones" do
+    it "generates a ones tensor" do
+      ones = tf.ones([2,2])
+      expect(ones.eval).to eq([[1.0, 1.0], [1.0, 1.0]])
+    end
+  end
+
   context ".reduce_sum" do
     it "computes the sum of elements across dimensions of a tensor." do
       x = TensorStream.constant([[1, 1, 1], [1, 1, 1]])

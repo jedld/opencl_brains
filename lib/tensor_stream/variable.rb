@@ -20,10 +20,6 @@ module TensorStream
       assign(@initalizer_tensor)
     end
 
-    def trainable?
-      @trainable
-    end
-
     def assign(value)
       Operation.new(:assign, self, value)
     end
