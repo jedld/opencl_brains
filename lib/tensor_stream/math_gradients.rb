@@ -47,6 +47,8 @@ module TensorStream
           derivative_a = derivative(tensor.items[0], dx, shape: tensor_shape1)
           derivative_b = derivative(tensor.items[1], dx, shape: tensor_shape0)
 
+          # derivative_a = op(:reshape, derivative_a, op(:shape, tensor.items[1]))
+          # derivative_b = op(:reshape, derivative_b, op(:shape, tensor.items[0]))
           op(:matmul, derivative_a, tensor.items[1], transpose_b: true,
                                                      name:        'matrix_dx') +
             op(:matmul, tensor.items[0], derivative_b, transpose_a: true,
@@ -56,12 +58,12 @@ module TensorStream
         end
       elsif tensor.is_a?(TensorStream::Variable)
         if tensor == dx
-          cons(1, constant_options)
+          op(:ones, op(:shape, tensor), data_type: tensor.data_type)
         else
-          cons(0, constant_options)
+          op(:zeros, op(:shape, tensor), data_type: tensor.data_type)
         end
       elsif tensor.is_a?(TensorStream::Placeholder)
-        op(:zeros, op(:shape, tensor))
+        cons(0, constant_options)
       else
         cons(0, constant_options)
       end

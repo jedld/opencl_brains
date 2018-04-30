@@ -63,8 +63,8 @@ training_epochs = 10
 tf = TensorStream
 
 # tf Graph input
-X = tf.placeholder("float", shape: [nil, num_input])
-Y = tf.placeholder("float", shape: [nil, num_classes])
+X = tf.placeholder("float", shape: [nil, num_input], name: 'x')
+Y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
 
 # Store layers weight & bias
 weights = {
@@ -105,6 +105,7 @@ TensorStream.Session do |sess|
   sess.run(init)
   puts "Testing the untrained network..."
   loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })
+  puts sess.run(loss)
   puts "loss before training"
   (0..training_epochs).each do |epoch|
     sess.run(optimizer, feed_dict: { X => x_train, Y => y_train })

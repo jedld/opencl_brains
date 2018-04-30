@@ -16,13 +16,13 @@ RSpec.describe TensorStream::Variable do
     end
 
     it "can specify initializer" do
-      mammal = TensorStream.Variable("Elephant", :string)
+      mammal = TensorStream.Variable("Elephant", dtype: :string)
       expect { mammal.eval }.to raise_exception
     end
 
     it "can access after initialized" do
       session = TensorStream::Session.default_session
-      mammal = TensorStream.Variable("Elephant", :string)
+      mammal = TensorStream.Variable("Elephant", dtype: :string)
       session.run(TensorStream.global_variables_initializer)
       expect(mammal.eval).to eq("Elephant")
     end

@@ -169,7 +169,7 @@ module TensorStream
   end
 
   def self.reshape(tensor, shape, name: nil)
-    TensorStream::Operation.new(:reshape, tensor, nil, shape: shape, name: name)
+    TensorStream::Operation.new(:reshape, tensor, shape, name: name)
   end
 
   def self.add(a, b)

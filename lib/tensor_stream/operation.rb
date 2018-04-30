@@ -98,6 +98,8 @@ module TensorStream
         "flow_group(#{items.collect { |i| auto_math(i)}.join(',')})"
       when :zeros
         "zeros(#{items[0]})"
+      when :reshape
+        "reshape(#{auto_math(items[0])},#{auto_math(items[1])})"
       else
         fail "math form for #{operation}"
       end

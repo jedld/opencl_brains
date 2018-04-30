@@ -218,6 +218,9 @@ module TensorStream
         matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
         matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
 
+        # handle matrix multiplication with constants like 1 or 0
+        matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
+        matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
         #check matrix dimensions
         fail "incompatible shape sizes for matrix multiplication #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
@@ -231,12 +234,13 @@ module TensorStream
         process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
       when :reshape
         arr = complete_eval(a, child_context)
-        new_shape = complete_eval(tensor.options[:shape], child_context)
+        new_shape = complete_eval(b, child_context)
 
         flat_arr = arr.flatten
         return flat_arr[0] if new_shape.size == 0 && flat_arr.size == 1
 
         new_shape = fix_inferred_elements(new_shape, flat_arr.size)
+
         cons(reshape(flat_arr, new_shape), dtype: a.data_type)
       else
         fail "unknown op #{tensor.operation}"
@@ -267,6 +271,17 @@ module TensorStream
     end
 
     private
+
+    def matmul_const_transform(mat, mat_b, tensor)
+      if !mat.is_a?(Array)
+        compat_shape = shape_eval(mat_b).reverse
+        func = ->() { tensor.data_type == :int32 ? mat.to_i : mat.to_f }
+
+        generate_vector(compat_shape, generator: func)
+      else
+        mat
+      end
+    end
 
     def fix_inferred_elements(shape, total_size)
       return shape if shape.empty?
@@ -313,7 +328,7 @@ module TensorStream
       # ruby scalar
       if get_rank(eval_a) == 0
         if (get_rank(eval_b)) == 0
-          TensorStream.constant(op.(eval_a,eval_b), dtype: a.dtype)
+          TensorStream.constant(op.call(eval_a,eval_b), dtype: a.dtype)
         else
           TensorStream.constant(constant_op(eval_b, eval_a, child_context, op, true))
         end

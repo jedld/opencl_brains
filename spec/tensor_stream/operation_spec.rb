@@ -362,38 +362,37 @@ end
     end
 
     it "computes gradient of sin" do
-      var = TensorStream.constant(1.0)              # Must be a tf.float32 or tf.float64 variable.
-      loss = TensorStream.sin(var)  # some_function_of() returns a `Tensor`.
+      var = TensorStream.constant(1.0) # Must be a tf.float32 or tf.float64 variable.
+      loss = TensorStream.sin(var) # some_function_of() returns a `Tensor`.
       var_grad = TensorStream.gradients(loss, [var])[0]
 
       expect(var_grad.eval).to eq(0.5403023058681398)
     end
 
+    it "computes for the derivative of a matrix multiplication operation" do
+      tf = TensorStream
+      y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
+      x = tf.constant([[4.0, 5.0], [5.0, 6.0]], dtype: :float32)
 
-      it "computes for the derivative of a matrix multiplication operation" do
-        tf = TensorStream
-        y =   tf.constant([[1.0,2.0],[3.0,4.0]], dtype: :float32)
-        x = tf.constant([[4.0,5.0],[5.0,6.0]], dtype: :float32)
-       
-        c = tf.matmul(x, y)
-       
-        expect(c.eval).to eq([[19, 28], [23, 34]])
-        c_grad = tf.gradients(c, [x, y])
-        expect(c_grad.eval).to eq([
-          [[3.0, 7.0], [3.0, 7.0 ]],
-          [[9.0, 9.0], [11.0, 11.0]]
-        ])  
-      end
+      c = tf.matmul(x, y)
 
-      it "should properly handle the gradient of non cubic matrices" do
-        y = tf.constant([[1.0,2.0],[3.0,4.0]], dtype: :float32)
-        z = tf.constant([[4.0,5.0]], dtype: :float32)
-        cz = tf.matmul(z, y)
-        z_grad = tf.gradients(cz, [y])
-        expect(z_grad.eval).to eq([
-          [[4.0, 4.0], [5.0, 5.0]]
-        ])
-      end
+      expect(c.eval).to eq([[19, 28], [23, 34]])
+      c_grad = tf.gradients(c, [x, y])
+      expect(c_grad.eval).to eq([
+        [[3.0, 7.0], [3.0, 7.0]],
+        [[9.0, 9.0], [11.0, 11.0]]
+      ])
+    end
+
+    it 'should properly handle the gradient of non cubic matrices' do
+      y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
+      z = tf.constant([[4.0, 5.0]], dtype: :float32)
+      cz = tf.matmul(z, y)
+      z_grad = tf.gradients(cz, [y])
+      expect(z_grad.eval).to eq([
+        [[4.0, 4.0], [5.0, 5.0]]
+      ])
+    end
   end
 
   context ".sub" do
