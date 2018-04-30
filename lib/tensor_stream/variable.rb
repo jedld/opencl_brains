@@ -32,6 +32,9 @@ module TensorStream
       Operation.new(:assign_add, self, value)
     end
 
+    def to_math
+      @name
+    end
 
     def assign_sub(value)
       Operation.new(:assign_sub, self, value)

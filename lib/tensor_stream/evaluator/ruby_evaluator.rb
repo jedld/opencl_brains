@@ -217,6 +217,10 @@ module TensorStream
 
         matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
         matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
+
+        #check matrix dimensions
+        fail "incompatible shape sizes for matrix multiplication #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+
         cons((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
       when :gradients
         b.collect do |xs|

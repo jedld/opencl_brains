@@ -60,6 +60,8 @@ module TensorStream
         else
           cons(0, constant_options)
         end
+      elsif tensor.is_a?(TensorStream::Placeholder)
+        op(:zeros, op(:shape, tensor))
       else
         cons(0, constant_options)
       end

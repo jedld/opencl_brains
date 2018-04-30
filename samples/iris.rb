@@ -76,7 +76,7 @@ weights = {
 biases = {
     b1: tf.Variable(tf.random_normal([n_hidden_1]), name: 'b1'),
     b2: tf.Variable(tf.random_normal([n_hidden_2]), name: 'b2'),
-    out: tf.Variable(tf.random_normal([num_classes]), name: 'out')
+    out: tf.Variable(tf.random_normal([num_classes]), name: 'b_out')
 }
 
 
