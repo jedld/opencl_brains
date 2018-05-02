@@ -96,6 +96,10 @@ module TensorStream
     TensorStream::Operation.new(:shape, input, nil, name: name)
   end
 
+  def self.rank(input, name: nil)
+    op(:rank, input, name: name)
+  end
+
   def self.constant(value, options = {})
     shared_options = { const: true, value: value, name: options[:name] }
     if value.is_a?(Float)
@@ -152,6 +156,10 @@ module TensorStream
     TensorStream::Operation.new(:zeros, nil, nil, options)
   end
 
+  def self.slice(input, start, size, name: nil)
+    op(:slice, input, start, size: size, name: name)
+  end
+
   def self.zeros(shape, dtype: :float32, name: nil)
     op(:zeros, shape, nil, data_type: dtype, name: name)
   end
@@ -186,6 +194,10 @@ module TensorStream
 
   def self.equal(a, b, options = {})
     TensorStream::Operation.new(:equal, a, b, options)
+  end
+
+  def self.identity(input, name: name)
+    op(:identity, input, nil, name: name)
   end
 
   def self.multiply(a, b)

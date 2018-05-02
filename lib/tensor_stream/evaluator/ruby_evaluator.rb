@@ -101,11 +101,17 @@ module TensorStream
         b = complete_eval(b, child_context)
 
         (a == b)
-      when :slice
+      when :index
         f = run(a, child_context)
         index = run(b, child_context)
 
         f[index]
+      when :slice
+        input = complete_eval(a, child_context)
+        start = complete_eval(b, child_context)
+        size = complete_eval(tensor.options[:size], child_context)
+        fail "start index and size not of the same shape #{start.size} != #{size.size}" if start.size != size.size
+        slice_tensor(input, start, size)
       when :negate
         call_vector_op(:negate, a, nil, child_context, ->(t, _u) { -t })
       when :add
@@ -228,8 +234,14 @@ module TensorStream
       when :gradients
         b.collect do |xs|
           fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)
+          
           TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
         end
+      when :identity
+        cons(complete_eval(a, child_context))
+      when :rank
+        a = complete_eval(a, child_context)
+        cons(get_rank(a), data_type: :int32)
       when :div
         process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
       when :reshape
@@ -271,6 +283,19 @@ module TensorStream
     end
 
     private
+
+    def slice_tensor(input, start, size)
+      start_index = start.shift
+      dimen_size = start_index + size.shift
+
+      input[start_index...dimen_size].collect do |item|
+        if item.is_a?(Array)
+          slice_tensor(item, start.dup, size.dup)
+        else
+          item
+        end
+      end
+    end
 
     def matmul_const_transform(mat, mat_b, tensor)
       if !mat.is_a?(Array)

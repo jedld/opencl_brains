@@ -192,6 +192,36 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".slice" do
+    it "slices a tensor" do
+      t = tf.constant([[[1, 1, 1], [2, 2, 2]],
+        [[3, 3, 3], [4, 4, 4]],
+        [[5, 5, 5], [6, 6, 6]]])
+      expect(tf.slice(t, [1, 0, 0], [1, 1, 3]).eval).to eq([[[3, 3, 3]]])
+      expect(tf.slice(t, [1, 0, 0], [1, 2, 3]).eval).to eq([[[3, 3, 3], [4, 4, 4]]])
+      expect(tf.slice(t, [1, 0, 0], [2, 1, 3]).eval).to eq([[[3, 3, 3]], [[5, 5, 5]]])
+    end
+
+    it "1D tensor slicing" do
+      t  = tf.constant([1,2,3,4,5,6,7])
+      expect(tf.slice(t, [2], [1]).eval).to eq([3])
+    end
+  end
+
+  context ".rank" do
+    it "returns the rank of a tensor" do
+      t1 = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
+      t2 = tf.constant(1)
+      t3 = tf.constant([1,2])
+      rank1 = tf.rank(t1)
+      rank2 = tf.rank(t2)
+      rank3 = tf.rank(t3)
+      expect(rank1.eval).to eq(3)
+      expect(rank2.eval).to eq(0)
+      expect(rank3.eval).to eq(1)
+    end
+  end
+
   context ".negate" do
     it "computes the negative of a tensor" do
       x = TensorStream.constant(0.1)
@@ -341,6 +371,14 @@ end
     end
   end
 
+  context ".identity" do
+    it "creates a tensor with the same shape and contents as input" do
+      a = tf.constant([[1,2,3], [4,5,6]])
+      b = tf.identity(a)
+      expect(b.eval).to eq(a.eval)
+    end
+  end
+
   context ".gradients" do
     it "Constructs symbolic derivatives of sum of ys w.r.t. x in xs." do
       a = TensorStream.constant(0.0)
@@ -392,6 +430,33 @@ end
       expect(z_grad.eval).to eq([
         [[4.0, 4.0], [5.0, 5.0]]
       ])
+    end
+
+    it 'should handle matrix gradients with incompatible transpositions' do
+      y = tf.constant([[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], dtype: :float32)
+      z = tf.constant([[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]], dtype: :float32)
+      cz = tf.matmul(y, z)
+      expect(tr(cz.eval)).to eq([[17.5, 18.71], [32.8, 38.31]])
+      z_grad = tf.gradients(cz, [y, z])
+      expect(tr(z_grad.eval)).to eq(
+        [[[9.0 , 4.3, 8.1, 2.0 ],
+          [9.0 , 4.3, 8.1, 2.0 ]], 
+        
+          [
+            [4.0 , 4.0 ],
+            [6.0 , 6.0 ],
+            [5.2, 5.2 ],
+            [1.7, 1.7 ]]])
+    end
+
+    it "should handle placeholders" do
+      X = tf.placeholder("float", shape: [nil, 4])
+      Y = tf.placeholder("float", shape: [nil, 2])
+      cz = tf.matmul(X, Y)
+      z_grad = tf.gradients(cz, [X, Y])
+      expect(tr(z_grad.eval(feed_dict: { 
+        X => [[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], 
+        Y => [[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]]}))).to eq([])
     end
   end
 

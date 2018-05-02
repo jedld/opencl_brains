@@ -100,6 +100,8 @@ module TensorStream
         "zeros(#{items[0]})"
       when :reshape
         "reshape(#{auto_math(items[0])},#{auto_math(items[1])})"
+      when :rank
+        "#{auto_math(items[0])}.rank"
       else
         fail "math form for #{operation}"
       end

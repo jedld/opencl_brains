@@ -84,7 +84,7 @@ RSpec.describe TensorStream::Tensor do
   describe "#[]" do
     it "access indexes" do
       b = TensorStream.constant([3.0], dtype: TensorStream::Types.float32)
-      expect(b[0].to_s).to eq("slice:0")
+      expect(b[0].to_s).to eq("index:0")
     end
   end
 

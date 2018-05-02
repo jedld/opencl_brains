@@ -100,7 +100,7 @@ module TensorStream
     end
 
     def [](index)
-      TensorStream::Operation.new(:slice, self, index)
+      TensorStream::Operation.new(:index, self, index)
     end
 
     def *(operand)

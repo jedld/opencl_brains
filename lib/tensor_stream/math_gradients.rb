@@ -52,7 +52,7 @@ module TensorStream
           op(:matmul, derivative_a, tensor.items[1], transpose_b: true,
                                                      name:        'matrix_dx') +
             op(:matmul, tensor.items[0], derivative_b, transpose_a: true,
-                                                       name:        'matrix_dy')
+                                                      name:        'matrix_dy')                                  
         else
           fail "no derivative implementation found for op #{tensor.operation}"
         end
