@@ -207,6 +207,16 @@ module TensorStream
           b = b.call if b.is_a?(Proc)
           complete_eval(b, child_context)
         end
+      when :less
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+
+        a < b
+      when :greater
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+
+        a > b
       when :zeros, :ones
         s = complete_eval(a, child_context) || tensor.shape.shape
 

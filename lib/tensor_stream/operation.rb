@@ -104,6 +104,10 @@ module TensorStream
         "#{auto_math(items[0])}.rank"
       when :cond
         "(#{auto_math(options[:pred])} ? #{auto_math(items[0])} : #{auto_math(items[1])})"
+      when :less
+        "#{auto_math(items[0])} < #{auto_math(items[1])}"
+      when :greater
+        "#{auto_math(items[0])} > #{auto_math(items[1])}"
       else
         fail "math form for #{operation}"
       end

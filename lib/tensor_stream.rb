@@ -168,6 +168,14 @@ module TensorStream
     op(:ones, shape, nil, data_type: dtype, name: name)
   end
 
+  def self.less(a, b, name: nil)
+    op(:less, a, b, name: name)
+  end
+
+  def self.greater(a, b, name: nil)
+    op(:greater, a, b, name: name)
+  end
+
   def self.reduce_sum(input_tensor, axis = nil, keepdims: false)
     TensorStream::Operation.new(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims)
   end
@@ -189,11 +197,11 @@ module TensorStream
   end
 
   def self.add(a, b)
-    a - b
+    a + b
   end
 
   def self.sub(a, b)
-    a + b
+    a - b
   end
 
   def self.negate(a, options = {})

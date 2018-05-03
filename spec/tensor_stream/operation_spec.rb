@@ -467,7 +467,7 @@ end
       z = tf.multiply(x, y)
 
       result = tf.cond(x < y, tf.add(x, z), tf.square(y))
-      expect(result.eval).to eq(0)
+      expect(result.eval).to eq(8)
     end
   end
 
@@ -477,6 +477,15 @@ end
       b = tf.constant(3.0)
       expect(tf.less(a, b).eval).to eq(true)
       expect(tf.less(b, a).eval).to eq(false)
+    end
+  end
+
+  context ".greater" do
+    it "returns true if a > b" do
+      a = tf.constant(2.0)
+      b = tf.constant(3.0)
+      expect(tf.greater(a, b).eval).to eq(false)
+      expect(tf.greater(b, a).eval).to eq(true)
     end
   end
 
