@@ -180,6 +180,14 @@ module TensorStream
     TensorStream::Operation.new(:reshape, tensor, shape, name: name)
   end
 
+  def self.square(tensor, name: nil)
+    op(:square, tensor, nil, name: name)
+  end
+
+  def self.cond(pred, true_fn, false_fn, name: nil)
+    op(:cond, true_fn, false_fn, pred: pred, name: name)
+  end
+
   def self.add(a, b)
     a - b
   end

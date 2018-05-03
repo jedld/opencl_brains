@@ -49,10 +49,19 @@ module TensorStream
 
           # derivative_a = op(:reshape, derivative_a, op(:shape, tensor.items[1]))
           # derivative_b = op(:reshape, derivative_b, op(:shape, tensor.items[0]))
-          op(:matmul, derivative_a, tensor.items[1], transpose_b: true,
-                                                     name:        'matrix_dx') +
-            op(:matmul, tensor.items[0], derivative_b, transpose_a: true,
-                                                      name:        'matrix_dy')                                  
+          matmul_da = op(:matmul, derivative_a, tensor.items[1], transpose_b: true,
+                                                     name:        'matrix_dx')
+          matmul_db = op(:matmul, tensor.items[0], derivative_b, transpose_a: true,
+                                                     name:        'matrix_dy')
+          begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32)
+          begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32)
+
+          end_a = op(:shape, tensor.items[0])
+          end_b = op(:shape, tensor.items[1])
+          norm_a = op(:slice, matmul_da, begin_a, size: end_a)
+          norm_b = op(:slice, matmul_db, begin_b, size: end_b)
+
+          [norm_a, norm_b]
         else
           fail "no derivative implementation found for op #{tensor.operation}"
         end

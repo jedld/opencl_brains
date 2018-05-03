@@ -2,6 +2,8 @@ require 'ostruct'
 
 module TensorStream
   class Tensor
+    include OpHelper
+
     attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value
 
     def self.const_name
@@ -121,6 +123,22 @@ module TensorStream
 
     def -@
       TensorStream::Operation.new(:negate, self, nil)
+    end
+
+    def <(operand)
+      op(:less, self, operand)
+    end
+
+    def <=(operand)
+      op(:less_equal, self, operand)
+    end
+
+    def >(operand)
+      op(:greater, self, operand)
+    end
+
+    def >=(operand)
+      op(:greater_equal, self, operand)
     end
 
     def collect(&block)

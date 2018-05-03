@@ -460,6 +460,26 @@ end
     end
   end
 
+  context ".cond" do
+    it "returns a specific tensor function depending on the value of the predicate"  do
+      x = tf.constant(2.0)
+      y = tf.constant(3.0)
+      z = tf.multiply(x, y)
+
+      result = tf.cond(x < y, tf.add(x, z), tf.square(y))
+      expect(result.eval).to eq(0)
+    end
+  end
+
+  context ".less" do
+    it "returns true if a < b" do
+      a = tf.constant(2.0)
+      b = tf.constant(3.0)
+      expect(tf.less(a, b).eval).to eq(true)
+      expect(tf.less(b, a).eval).to eq(false)
+    end
+  end
+
   context ".sub" do
     let(:a) { tf.constant([1.0, 2.0, 3.0])}
     let(:b) { tf.constant([0.1, 0.2, 0.3])}

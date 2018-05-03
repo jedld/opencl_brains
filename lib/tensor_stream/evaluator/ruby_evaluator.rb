@@ -198,6 +198,15 @@ module TensorStream
             end
           end
         end
+      when :cond
+        pred = complete_eval(tensor.options[:pred], child_context)
+        if pred
+          a = a.call if a.is_a?(Proc)
+          complete_eval(a, child_context)
+        else
+          b = b.call if b.is_a?(Proc)
+          complete_eval(b, child_context)
+        end
       when :zeros, :ones
         s = complete_eval(a, child_context) || tensor.shape.shape
 
@@ -227,15 +236,16 @@ module TensorStream
         # handle matrix multiplication with constants like 1 or 0
         matrix_a = matmul_const_transform(matrix_a, matrix_b, tensor)
         matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
-        #check matrix dimensions
+
+        # check matrix dimensions
         fail "incompatible shape sizes for matrix multiplication #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
         cons((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
       when :gradients
         b.collect do |xs|
-          fail "#{xs} passed is not a tensor object" unless xs.kind_of?(Tensor)
-          
-          TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients])
+          fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
+
+          complete_eval(TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients]), child_context)
         end
       when :identity
         cons(complete_eval(a, child_context))

@@ -102,6 +102,8 @@ module TensorStream
         "reshape(#{auto_math(items[0])},#{auto_math(items[1])})"
       when :rank
         "#{auto_math(items[0])}.rank"
+      when :cond
+        "(#{auto_math(options[:pred])} ? #{auto_math(items[0])} : #{auto_math(items[1])})"
       else
         fail "math form for #{operation}"
       end
