@@ -10,22 +10,28 @@ module TensorStream
 
       if tensor.is_a?(Operation)
         case tensor.operation
+        when :identity
+          derivative(tensor.items[0], dx, options)
+        when :negate
+          cons(-1, constant_options) * derivative(tensor.items[0], dx, options)
         when :abs
           derivative(tensor.items[0], dx, options) * op(:sign, tensor.items[0])
+        when :square
+          cons(2, constant_options) * tensor.items[0] * derivative(tensor.items[0], dx, options)
         when :exp
-          op(:exp, tensor.items[0])
+          op(:exp, tensor.items[0]) * derivative(tensor.items[0], dx, options)
         when :log
-          cons(1, constant_options) / _ds(tensor.items[0])
+          (cons(1, constant_options) / _ds(tensor.items[0])) * derivative(tensor.items[0], dx, options)
         when :stop_gradient
           return cons(0, constant_options)
         when :tanh
-          cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)
+          (cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)) * derivative(tensor.items[0], dx, options)
         when :tan
-          cons(1, constant_options) / (op(:cos, tensor.items[0])**2)
+          (cons(1, constant_options) / (op(:cos, tensor.items[0])**2)) * derivative(tensor.items[0], dx, options)
         when :sin
-          op(:cos, tensor.items[0]) * derivative(tensor.items[0], dx, options)
+          (op(:cos, tensor.items[0]) * derivative(tensor.items[0], dx, options)) * derivative(tensor.items[0], dx, options)
         when :cos
-          -op(:sin, tensor.items[0]) * derivative(tensor.items[0], dx, options)
+          (-op(:sin, tensor.items[0]) * derivative(tensor.items[0], dx, options)) * derivative(tensor.items[0], dx, options)
         when :add
           derivative(tensor.items[0], dx, options) + derivative(tensor.items[1], dx, options)
         when :sub

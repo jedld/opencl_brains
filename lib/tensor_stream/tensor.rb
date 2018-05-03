@@ -272,6 +272,8 @@ module TensorStream
     end
 
     def auto_wrap(operand)
+      return auto_wrap(operand.call) if operand.is_a?(Proc)
+
       if !operand.is_a?(Tensor)
         TensorStream.constant(operand, dtype: @data_type || Tensor.detect_type(operand))
       else

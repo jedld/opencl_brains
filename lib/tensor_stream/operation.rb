@@ -8,9 +8,10 @@ module TensorStream
       @name = options[:name] || set_name
       @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
-      @data_type = options[:data_type]
 
-      @items = [a, b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) } 
+
+      @items = [a, b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) }
+      @data_type = options[:data_type] || set_data_type
 
       if options[:shape]
         @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
@@ -46,6 +47,15 @@ module TensorStream
       end
 
       return true
+    end
+
+    def set_data_type
+      case operation
+      when :greater, :less
+        :boolean
+      else
+        @items[0] ? @items[0].data_type : :unknown
+      end
     end
 
     def to_math
@@ -108,6 +118,10 @@ module TensorStream
         "#{auto_math(items[0])} < #{auto_math(items[1])}"
       when :greater
         "#{auto_math(items[0])} > #{auto_math(items[1])}"
+      when :square
+        "#{auto_math(items[0])}\u00B2"
+      when :identity
+        "identity(#{auto_math(items[0])})"
       else
         fail "math form for #{operation}"
       end

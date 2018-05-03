@@ -142,6 +142,8 @@ module TensorStream
         call_op(:log, a, child_context, ->(t, _b) { Math.log(t) } )
       when :exp
         call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
+      when :square
+        call_op(:square, a, child_context, ->(t, _b) { t * t } )
       when :stop_gradient
         run(a, child_context)
       when :random_uniform
@@ -200,11 +202,10 @@ module TensorStream
         end
       when :cond
         pred = complete_eval(tensor.options[:pred], child_context)
+
         if pred
-          a = a.call if a.is_a?(Proc)
           complete_eval(a, child_context)
         else
-          b = b.call if b.is_a?(Proc)
           complete_eval(b, child_context)
         end
       when :less

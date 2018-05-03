@@ -236,27 +236,36 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  # tests for single parameter algebra functions
 [
-  [:sin, 0.0998, [[0.8912, -0.3821], [0.8632, 0.1411]],  0.995, [[0.4536, -0.9241], [-0.5048, -0.99]]],
-  [:cos, 0.995, [[0.4536, -0.9241], [-0.5048, -0.99]], -0.0998, [[-0.8912, 0.3821], [-0.8632, -0.1411]]],
-  [:tan, 0.1003,  [[1.9648, 0.4134], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 1.1709], [3.9236, 1.0203]]],
-  [:tanh, 0.0997,  [[0.8005, 1.0], [0.9705, 0.9951]], 0.9901, [[0.3592, 0.0], [0.0582, 0.0099]]],
-  [:log, -2.3026,  [[0.0953, 2.7788], [0.7419, 1.0986]], 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]]],
+  [:sin, 0.0998, [[0.8912, -0.3821], [0.8632, 0.1411]],  0.995, [[0.4536, -0.9241], [-0.5048, -0.99]]            ],
+  [:cos, 0.995, [[0.4536, -0.9241], [-0.5048, -0.99]], -0.0998, [[-0.8912, 0.3821], [-0.8632, -0.1411]]          ],
+  [:tan, 0.1003,  [[1.9648, 0.4134], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 1.1709], [3.9236, 1.0203]]          ],
+  [:tanh, 0.0997,  [[0.8005, 1.0], [0.9705, 0.9951]], 0.9901, [[0.3592, 0.0], [0.0582, 0.0099]]                  ],
+  [:log, -2.3026,  [[0.0953, 2.7788], [0.7419, 1.0986]], 10.0, [[0.9091, 0.0621], [0.4762, 0.3333]]              ],
   [:exp, 1.1052,  [[3.0042, 9820670.9221], [8.1662, 20.0855]], 1.1052, [[3.0042, 9820670.9221], [8.1662, 20.0855]]],
+  [:square, 0.01, [[1.21, 259.21], [4.41, 9.0]], 0.2, [[2.2, 32.2], [4.2, 6.0]]                                  ],
+  [:negate, -0.1, [[-1.1, -16.1], [-2.1, -3.0]], -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                              ],
+  [:identity, 0.1, [[1.1, 16.1], [2.1, 3.0]], 1.0, [[1, 1], [1, 1]]                                              ],
 ].each do |func, scalar, matrix, gradient, gradient2|
   context ".#{func}" do
-    it "Computes for the #{func} of a tensor" do
-      x = TensorStream.constant(0.1)
-      y = TensorStream.constant([[1.1, 16.1], [2.1, 3.0]])
-      x_sin = TensorStream.send(func,x)
-      y_sin = TensorStream.send(func,y)
+    let(:x) { TensorStream.constant(0.1) }
+    let(:y) {  TensorStream.constant([[1.1, 16.1], [2.1, 3.0]]) }
+    let(:sess) { TensorStream.Session }
+    let(:f_x) { TensorStream.send(func,x) }
+    let(:f_y) { TensorStream.send(func,y) }
 
-      sess = TensorStream.Session
-      expect(tr(sess.run(x_sin))).to eq(scalar)
-      expect(tr(sess.run(y_sin))).to eq(matrix)
+    specify "scalar #{func} value" do
+      expect(tr(sess.run(f_x))).to eq(scalar)
+    end
 
-      grad = TensorStream.gradients(x_sin, [x])[0]
-      grad_2 = TensorStream.gradients(y_sin, [y])[0]
+    specify "matrix #{func} values" do
+      expect(tr(sess.run(f_y))).to eq(matrix)
+    end
+
+    specify "gradient #{func} values" do
+      grad = TensorStream.gradients(f_x, [x])[0]
+      grad_2 = TensorStream.gradients(f_y, [y])[0]
       expect(tr(sess.run(grad))).to eq(gradient)
       expect(tr(sess.run(grad_2))).to eq(gradient2)
     end
@@ -371,14 +380,6 @@ end
     end
   end
 
-  context ".identity" do
-    it "creates a tensor with the same shape and contents as input" do
-      a = tf.constant([[1,2,3], [4,5,6]])
-      b = tf.identity(a)
-      expect(b.eval).to eq(a.eval)
-    end
-  end
-
   context ".gradients" do
     it "Constructs symbolic derivatives of sum of ys w.r.t. x in xs." do
       a = TensorStream.constant(0.0)
@@ -395,7 +396,7 @@ end
       b = TensorStream.stop_gradient(a * 2)
       h = TensorStream.gradients(a + b, [a, b])
       expect((a+b).eval).to eq(0)
-      expect((a+b).to_math).to eq("(0.0 + (0.0 * 2))")
+      expect((a+b).to_math).to eq("(0.0 + (0.0 * 2.0))")
       expect(h.eval).to eq([1.0, 1.0])
     end
 
@@ -467,7 +468,9 @@ end
       z = tf.multiply(x, y)
 
       result = tf.cond(x < y, tf.add(x, z), tf.square(y))
-      expect(result.eval).to eq(8)
+      result2 = tf.cond(x > y, -> { tf.add(x, z) }, -> { tf.square(y) })
+      expect(result.eval).to eq(8.0)
+      expect(result2.eval).to eq(9.0)
     end
   end
 
@@ -525,7 +528,7 @@ end
 
   context "combination of functions" do
     it "add two operation together" do
-      y = TensorStream.sin(1) + TensorStream.sin(2)
+      y = TensorStream.sin(1.0) + TensorStream.sin(2.0)
       expect(y.eval).to eq(1.7507684116335782)
     end
   end
