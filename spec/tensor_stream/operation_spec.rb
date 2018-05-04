@@ -109,6 +109,9 @@ RSpec.describe TensorStream::Operation do
       expect(TensorStream.equal(a, c).eval).to eq(false)
       expect(TensorStream.equal(d, e).eval).to eq(true)
       expect(TensorStream.equal(e, f).eval).to eq(false)
+
+      expect((a == b).eval).to eq(true)
+      expect((a == c).eval).to eq(false)
     end
   end
 

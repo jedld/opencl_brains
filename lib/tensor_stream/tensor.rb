@@ -125,6 +125,10 @@ module TensorStream
       TensorStream::Operation.new(:negate, self, nil)
     end
 
+    def ==(operand)
+      op(:equal, self, operand)
+    end
+
     def <(operand)
       op(:less, self, operand)
     end

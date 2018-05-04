@@ -57,7 +57,7 @@ module TensorStream
           tensor = tensor.map { |t| complete_eval(t, context) }
         end
 
-        return tensor if old_tensor == tensor
+        return tensor if old_tensor.equal?(tensor)
         return tensor unless tensor.is_a?(Tensor)
       end
     end

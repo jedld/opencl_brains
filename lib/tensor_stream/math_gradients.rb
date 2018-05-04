@@ -5,8 +5,8 @@ module TensorStream
     def self.derivative(tensor, dx, options = {})
       constant_options = { dtype: options[:dtype] || tensor.data_type,
                            shape: options[:shape] || (tensor.shape ? tensor.shape.shape : nil)}
-      return cons(1, constant_options) if tensor == dx
-      return cons(0, constant_options) if options[:stop_gradients] && options[:stop_gradients].include?(tensor)
+      return cons(1, constant_options) if tensor.equal?(dx)
+      return cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
         case tensor.operation
@@ -72,7 +72,7 @@ module TensorStream
           fail "no derivative implementation found for op #{tensor.operation}"
         end
       elsif tensor.is_a?(TensorStream::Variable)
-        if tensor == dx
+        if tensor.equal?(dx)
           op(:ones, op(:shape, tensor), data_type: tensor.data_type)
         else
           op(:zeros, op(:shape, tensor), data_type: tensor.data_type)
@@ -93,6 +93,13 @@ module TensorStream
       else
         tensor
       end
+    end
+
+    private
+
+    def self._include?(arr, obj)
+      arr.each { |a| return true if a.equal?(obj) }
+      false
     end
   end
 end
