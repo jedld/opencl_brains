@@ -204,6 +204,10 @@ module TensorStream
     a - b
   end
 
+  def self.print(input, data, message: nil, name: nil)
+    op(:print, input, data, message: message, name: name)
+  end
+
   def self.negate(a, options = {})
     TensorStream::Operation.new(:negate, a, nil, options)
   end

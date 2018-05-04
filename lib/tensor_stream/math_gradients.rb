@@ -3,49 +3,71 @@ module TensorStream
     extend TensorStream::OpHelper
 
     def self.derivative(tensor, dx, options = {})
-      constant_options = { dtype: options[:dtype] || tensor.data_type,
-                           shape: options[:shape] || (tensor.shape ? tensor.shape.shape : nil)}
+      constant_options = { dtype: options[:dtype] || tensor.data_type }
+      target_shape = options[:target_shape]
       return cons(1, constant_options) if tensor.equal?(dx)
       return cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
+        grad = derivative(tensor.items[0], dx, options)
+
         case tensor.operation
-        when :identity
-          derivative(tensor.items[0], dx, options)
+        when :identity, :print
+          grad
         when :negate
-          cons(-1, constant_options) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          cons(-1, constant_options) * grad
         when :abs
-          derivative(tensor.items[0], dx, options) * op(:sign, tensor.items[0])
+          return cons(0, constant_options) if grad.value == 0
+
+          grad * op(:sign, tensor.items[0])
         when :square
-          cons(2, constant_options) * tensor.items[0] * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          cons(2, constant_options) * tensor.items[0] * grad
         when :exp
-          op(:exp, tensor.items[0]) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          op(:exp, tensor.items[0]) * grad
         when :log
-          (cons(1, constant_options) / _ds(tensor.items[0])) * derivative(tensor.items[0], dx, options)
-        when :stop_gradient
-          return cons(0, constant_options)
+          return cons(0, constant_options) if grad.value == 0
+
+          (cons(1, constant_options) / _ds(tensor.items[0])) * grad
         when :tanh
-          (cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          (cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)) * grad
         when :tan
-          (cons(1, constant_options) / (op(:cos, tensor.items[0])**2)) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          (cons(1, constant_options) / (op(:cos, tensor.items[0])**2)) * grad
         when :sin
-          (op(:cos, tensor.items[0]) * derivative(tensor.items[0], dx, options)) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          op(:cos, tensor.items[0]) * grad
         when :cos
-          (-op(:sin, tensor.items[0]) * derivative(tensor.items[0], dx, options)) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          -op(:sin, tensor.items[0]) * grad
         when :add
-          derivative(tensor.items[0], dx, options) + derivative(tensor.items[1], dx, options)
+          grad + derivative(tensor.items[1], dx, options)
         when :sub
-          derivative(tensor.items[0], dx, options) - derivative(tensor.items[1], dx, options)
+          grad - derivative(tensor.items[1], dx, options)
         when :pow
-          _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * derivative(tensor.items[0], dx, options)
+          return cons(0, constant_options) if grad.value == 0
+
+          _ds(tensor.items[1]) * (_ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
         when :div
           # apply the quotient rule
-          (derivative(tensor.items[0], dx, options) * _ds(tensor.items[1]) - _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
+          (grad * _ds(tensor.items[1]) - _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
         when :mul
           # apply the product rule
-          derivative(tensor.items[0], dx, options) * _ds(tensor.items[1]) + _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options)
+          grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options)
         when :reduce_sum
-          derivative(tensor.items[0], dx, options)
+          grad
+        when :stop_gradient
+          return cons(0, constant_options)
         when :matmul
           tensor_shape1 = tensor.items[1].shape ? tensor.items[1].shape.shape : nil
           tensor_shape0 = tensor.items[0].shape ? tensor.items[0].shape.shape : nil
@@ -66,8 +88,9 @@ module TensorStream
           end_b = op(:shape, tensor.items[1])
           norm_a = op(:slice, matmul_da, begin_a, size: end_a)
           norm_b = op(:slice, matmul_db, begin_b, size: end_b)
+          zero_vect = op(:zeros, target_shape)
 
-          [norm_a, norm_b]
+          op(:cond, norm_a, zero_vect, pred: op(:shape, norm_a) == target_shape) + op(:cond, norm_b, zero_vect, pred: op(:shape, norm_b) == target_shape)
         else
           fail "no derivative implementation found for op #{tensor.operation}"
         end

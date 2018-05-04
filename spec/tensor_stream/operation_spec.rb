@@ -172,7 +172,7 @@ RSpec.describe TensorStream::Operation do
       expect(TensorStream.reduce_sum(x, 0).eval).to eq([2, 2, 2])
       expect(TensorStream.reduce_sum(x, 1).eval).to eq([3, 3])
       expect(TensorStream.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
-      expect(TensorStream.reduce_sum(x, [0, 1]).eval).to eq(6)
+      expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
     end
 
     specify "computes the gradients properly" do
@@ -184,14 +184,23 @@ RSpec.describe TensorStream::Operation do
 
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
-      x = TensorStream.constant([[2, 2], [3, 3]])
-      y = TensorStream.constant([[8, 16], [2, 3]])
-      p = TensorStream.pow(x, y)  # [[256, 65536], [9, 27]]
-      sess = TensorStream.Session
+      x = tf.constant([[2, 2], [3, 3]])
+      y = tf.constant([[8, 16], [2, 3]])
+      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
+      sess = tf.Session
       expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
 
-      p = TensorStream.pow(x, 2)
+      p = tf.pow(x, 2)
       expect(sess.run(p)).to eq([[4, 4], [9, 9]])
+    end
+  end
+
+  context ".print" do
+    it "behaves like identity but prints a message to stdout" do
+      x = tf.constant([[2.0, 2.0], [3.0, 3.0]])
+      y = tf.print(x, x, message: "this is a prefix")
+      z = tf.sin(y)
+      expect(tr(z.eval)).to eq([[0.9093, 0.9093], [0.1411, 0.1411]])
     end
   end
 
@@ -227,12 +236,12 @@ RSpec.describe TensorStream::Operation do
 
   context ".negate" do
     it "computes the negative of a tensor" do
-      x = TensorStream.constant(0.1)
-      y = TensorStream.constant([[1.1, 16.1], [2.1, 3.0]])
-      z = -TensorStream.constant(4.1)
-      x_negate = TensorStream.negate(x)
-      y_negate = TensorStream.negate(y)
-      sess = TensorStream.Session
+      x = tf.constant(0.1)
+      y = tf.constant([[1.1, 16.1], [2.1, 3.0]])
+      z = -tf.constant(4.1)
+      x_negate = tf.negate(x)
+      y_negate = tf.negate(y)
+      sess = tf.Session
       expect(sess.run(x_negate)).to eq(-0.1)
       expect(sess.run(y_negate)).to eq([[-1.1, -16.1], [-2.1, -3.0]])
       expect(sess.run(z)).to eq(-4.1)
@@ -253,11 +262,11 @@ RSpec.describe TensorStream::Operation do
   [:abs, 0.1,      [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
 ].each do |func, scalar, matrix, gradient, gradient2|
   context ".#{func}" do
-    let(:x) { TensorStream.constant(0.1) }
-    let(:y) {  TensorStream.constant([[1.1, 16.1], [2.1, 3.0]]) }
-    let(:sess) { TensorStream.Session }
-    let(:f_x) { TensorStream.send(func,x) }
-    let(:f_y) { TensorStream.send(func,y) }
+    let(:x) { tf.constant(0.1) }
+    let(:y) {  tf.constant([[1.1, 16.1], [2.1, 3.0]]) }
+    let(:sess) { tf.Session }
+    let(:f_x) { tf.send(func,x) }
+    let(:f_y) { tf.send(func,y) }
 
     specify "scalar #{func} value" do
       expect(tr(sess.run(f_x))).to eq(scalar)
@@ -268,8 +277,8 @@ RSpec.describe TensorStream::Operation do
     end
 
     specify "gradient #{func} values" do
-      grad = TensorStream.gradients(f_x, [x])[0]
-      grad_2 = TensorStream.gradients(f_y, [y])[0]
+      grad = tf.gradients(f_x, [x])[0]
+      grad_2 = tf.gradients(f_y, [y])[0]
       expect(tr(sess.run(grad))).to eq(gradient)
       expect(tr(sess.run(grad_2))).to eq(gradient2)
     end
@@ -277,7 +286,6 @@ RSpec.describe TensorStream::Operation do
 end
 
   context ".abs" do
-    let(:tf) { TensorStream }
     it "Computes the absolute value of a tensor" do
       tf = TensorStream
 
@@ -297,7 +305,6 @@ end
   end
 
   context ".sign" do
-    let(:tf) { TensorStream }
     it "Returns an element-wise indication of the sign of a number." do
       tf = TensorStream
 
@@ -311,8 +318,6 @@ end
 
   context ".matmul" do
     it "performs matrix multiplication" do
-      tf = TensorStream
-
       a = tf.constant([1, 2, 3, 4, 5, 6], shape: [2, 3])
       b = tf.constant([7, 8, 9, 10, 11, 12], shape: [3, 2])
       c = tf.matmul(a, b)
@@ -321,11 +326,26 @@ end
       d = tf.matmul(a, b, transpose_a: true, transpose_b: true)
       expect(d.eval).to eq([[39, 49, 59], [54, 68, 82], [69, 87, 105]])
     end
+
+    specify "gradients" do
+      a = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+      b = tf.constant([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0], [10.0, 11.0, 12.0]])
+      
+      y = tf.matmul(a, tf.sin(b))
+      g = tf.gradients(y, [a,b])
+
+      expect(g.eval).to eq([
+        [[ 2.0584633, -2.0805843, -2.0805843],
+         [ 2.0584633, -2.0805843, -2.0805843]], 
+        [[ 3.7695112 , -0.7275002 , -4.555651],
+         [-5.873501  ,  0.03097989,  5.9069777 ],
+         [-7.5516434 ,  0.03983128,  7.5946856 ]]])
+    end
   end
 
   context ".transpose" do
     it "transposes matrices" do
-      TensorStream.program do |tf|
+      tf.program do |tf|
         x = tf.constant([[1, 2, 3], [4, 5, 6]])
         t = tf.transpose(x)
         sess = tf.Session
@@ -336,8 +356,8 @@ end
 
   context ".derivative" do
     it "Creates a derivative graph for a computation" do
-      x = TensorStream.placeholder(TensorStream::Types.float32)
-      p = TensorStream.pow(x, 3) 
+      x = tf.placeholder(TensorStream::Types.float32)
+      p = tf.pow(x, 3) 
 
       derivative_function = TensorStream::MathGradients.derivative(p, x)
       expect(p.eval(feed_dict: { x => 2})).to eq(8)
@@ -345,7 +365,7 @@ end
   
       # f(x) = (sin x) ^ 3
       # dx = 3(sin x)^2 * cos x
-      y = TensorStream.sin(x) ** 3
+      y = tf.sin(x) ** 3
       derivative_function_y = TensorStream::MathGradients.derivative(y, x)
       expect(derivative_function_y.eval(feed_dict: { x => 1 })).to eq(1.147721101851439)
     end
@@ -353,7 +373,7 @@ end
 
   context ".shape" do
     it "returns a 1D tensor representing shape of target tensor" do
-      TensorStream.program do |tf|
+      tf.program do |tf|
         t = tf.constant([[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]])
         shape = tf.shape(t)
         expect(shape.eval).to eq([2, 2, 3])
@@ -371,7 +391,7 @@ end
 
   context ".eye" do
     it "creates an identity matrix" do
-      TensorStream.program do |tf|
+      tf.program do |tf|
         e = tf.eye(2)
         expect(e.eval).to eq([[1.0, 0.0],[0.0, 1.0]])
 
@@ -386,34 +406,33 @@ end
 
   context ".gradients" do
     it "Constructs symbolic derivatives of sum of ys w.r.t. x in xs." do
-      a = TensorStream.constant(0.0)
+      a = tf.constant(0.0)
       b = a * 2
-      g = TensorStream.gradients(a + b, [a, b], stop_gradients: [a, b])
-      h = TensorStream.gradients(a + b, [a, b])
+      g = tf.gradients(a + b, [a, b], stop_gradients: [a, b])
+      h = tf.gradients(a + b, [a, b])
 
       expect(g.eval).to eq([1.0, 1.0])
       expect(h.eval).to eq([3.0, 1.0])
     end
 
     it "using stop gradients" do
-      a = TensorStream.stop_gradient(TensorStream.constant(0.0))
-      b = TensorStream.stop_gradient(a * 2)
-      h = TensorStream.gradients(a + b, [a, b])
+      a = tf.stop_gradient(tf.constant(0.0))
+      b = tf.stop_gradient(a * 2)
+      h = tf.gradients(a + b, [a, b])
       expect((a+b).eval).to eq(0)
       expect((a+b).to_math).to eq("(0.0 + (0.0 * 2.0))")
       expect(h.eval).to eq([1.0, 1.0])
     end
 
     it "computes gradient of sin" do
-      var = TensorStream.constant(1.0) # Must be a tf.float32 or tf.float64 variable.
-      loss = TensorStream.sin(var) # some_function_of() returns a `Tensor`.
-      var_grad = TensorStream.gradients(loss, [var])[0]
+      var = tf.constant(1.0) # Must be a tf.float32 or tf.float64 variable.
+      loss = tf.sin(var) # some_function_of() returns a `Tensor`.
+      var_grad = tf.gradients(loss, [var])[0]
 
       expect(var_grad.eval).to eq(0.5403023058681398)
     end
 
     it "computes for the derivative of a matrix multiplication operation" do
-      tf = TensorStream
       y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
       x = tf.constant([[4.0, 5.0], [5.0, 6.0]], dtype: :float32)
 
@@ -455,13 +474,13 @@ end
     end
 
     it "should handle placeholders" do
-      X = tf.placeholder("float", shape: [nil, 4])
-      Y = tf.placeholder("float", shape: [nil, 2])
-      cz = tf.matmul(X, Y)
-      z_grad = tf.gradients(cz, [X, Y])
+      x = tf.placeholder("float", shape: [nil, 4])
+      y = tf.placeholder("float", shape: [nil, 2])
+      cz = tf.matmul(x, y)
+      z_grad = tf.gradients(cz, [x, y])
       expect(tr(z_grad.eval(feed_dict: { 
-        X => [[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], 
-        Y => [[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]]}))).to eq([])
+        x => [[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], 
+        y => [[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]]}))).to eq([[[9.0, 4.3, 8.1, 2.0], [9.0, 4.3, 8.1, 2.0]], [[4.0, 4.0], [6.0, 6.0], [5.2, 5.2], [1.7, 1.7]]])
     end
   end
 
@@ -532,7 +551,7 @@ end
 
   context "combination of functions" do
     it "add two operation together" do
-      y = TensorStream.sin(1.0) + TensorStream.sin(2.0)
+      y = tf.sin(1.0) + tf.sin(2.0)
       expect(y.eval).to eq(1.7507684116335782)
     end
   end

@@ -126,6 +126,8 @@ module TensorStream
         "log(#{auto_math(items[0])})"
       when :identity
         "identity(#{auto_math(items[0])})"
+      when :print
+        "print(#{auto_math(items[0])})"
       else
         fail "math form for #{operation}"
       end

@@ -185,7 +185,7 @@ module TensorStream
               end
         cons(res)
       when :transpose
-        matrix_a = run(a, child_context)
+        matrix_a = complete_eval(a, child_context)
         cons(matrix_a.transpose)
       when :eye
         rows = complete_eval(a, child_context)
@@ -249,17 +249,26 @@ module TensorStream
         matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
 
         # check matrix dimensions
-        fail "incompatible shape sizes for matrix multiplication #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+        fail "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
         cons((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
       when :gradients
         b.collect do |xs|
           fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
+          xs_val = complete_eval(xs, child_context)
+          target_shape = shape_eval(xs_val)
+          derivative = complete_eval(TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape), child_context)
 
-          complete_eval(TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients]), child_context)
+          unit_matrix = cons(generate_vector(target_shape, generator: -> { xs.data_type == :int32 ? 1 : 1.0 } ))
+          complete_eval(unit_matrix * cons(derivative), child_context)
         end
       when :identity
         cons(complete_eval(a, child_context))
+      when :print
+        a = complete_eval(a, child_context)
+        b = complete_eval(b, child_context)
+        puts "#{tensor.options[:message] || ""} #{b}"
+        cons(a)
       when :rank
         a = complete_eval(a, child_context)
         cons(get_rank(a), data_type: :int32)
@@ -354,6 +363,7 @@ module TensorStream
     end
 
     def call_op(op, a, child_context, func)
+      a = complete_eval(a, child_context)
       process_function_op(a, child_context, func)
     rescue TensorStream::FullEvalNotPossible
       TensorStream.send(op.to_sym, a)
@@ -467,21 +477,6 @@ module TensorStream
           end
         end
       end
-    end
-
-    def shape_eval(input)
-      return [] unless input.kind_of?(Array)
-      arr = []
-      arr_ptr = input
-
-      Kernel.loop do
-        arr << arr_ptr.size
-        arr_ptr = arr_ptr[0]
-
-        break unless arr_ptr.is_a?(Array)
-      end
-
-      arr
     end
 
     def constant_op(vector, constant, child_context, op = ->(a,b) { a + b }, switch = false)
