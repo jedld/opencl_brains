@@ -12,6 +12,10 @@ module TensorStream
       @graph.add_node(self)
     end
 
+    def set_data_type(passed_data_type)
+      :unknown
+    end
+
     def run
       eval
     end

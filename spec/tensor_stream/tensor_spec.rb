@@ -18,6 +18,7 @@ RSpec.describe TensorStream::Tensor do
       e = TensorStream.Variable(451.12)
       total = a + b + c
       f = -e
+      g = -d
       # expect(TensorStream::Graph.get_default_graph.nodes.keys).to eq([])
       expect(a.to_s).to eq("Const:0")
       expect(b.to_s).to eq("Const_1:0")
@@ -27,6 +28,8 @@ RSpec.describe TensorStream::Tensor do
       expect(e.to_s).to eq("Variable_2:0")
       expect(a.shape.to_s).to eq("TensorShape([])")
       expect(f.to_s).to eq("negate_4:0")
+      expect(f.dtype).to eq(:float32)
+      expect(g.dtype).to eq(:int16)
     end
 
     context "constants" do
@@ -123,12 +126,20 @@ RSpec.describe TensorStream::Tensor do
       a = TensorStream.constant([3.0, 1.0], dtype: TensorStream::Types.float32)
       expect(a.eval).to eq([3.0, 1.0])
     end
+  end
 
+  describe "placeholders" do
     it "evalutes placeholders" do
       x = TensorStream.placeholder(TensorStream::Types.float32)
       y = TensorStream.placeholder(TensorStream::Types.float32)
       z = x + y
       expect(z.eval(feed_dict: { x =>  3.0, y => 4.5})).to eq(7.5)
+    end
+
+    specify "placeholders can have types" do
+      x = TensorStream.placeholder(TensorStream::Types.float32)
+      expect(x.dtype).to eq(:float32)
+      expect(x.data_type).to eq(:float32)
     end
   end
 

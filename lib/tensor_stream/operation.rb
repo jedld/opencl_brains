@@ -11,7 +11,7 @@ module TensorStream
 
 
       @items = [a, b].map { |i| options[:preserve_params_type] ? i : auto_wrap(i) }
-      @data_type = options[:data_type] || set_data_type
+      @data_type = set_data_type(options[:data_type])
 
       if options[:shape]
         @shape = TensorShape.new(options[:shape], options[:shape].size || 0)
@@ -49,12 +49,14 @@ module TensorStream
       return true
     end
 
-    def set_data_type
+    def set_data_type(passed_data_type)
       case operation
-      when :greater, :less
+      when :greater, :less, :equal
         :boolean
+      when :shape, :rank
+        :int32
       else
-        @items[0] ? @items[0].data_type : :unknown
+        passed_data_type || (@items[0] ? @items[0].data_type : :unknown)
       end
     end
 

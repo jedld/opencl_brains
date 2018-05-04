@@ -26,6 +26,11 @@ RSpec.describe TensorStream::Variable do
       session.run(TensorStream.global_variables_initializer)
       expect(mammal.eval).to eq("Elephant")
     end
+
+    specify "has a default data type" do
+      w = TensorStream.Variable(rand, name: "weight")
+      expect(w.dtype).to eq(:float32)
+    end
   end
 
   context ".get_variable" do  
