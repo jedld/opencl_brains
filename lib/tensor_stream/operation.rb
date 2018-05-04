@@ -120,6 +120,8 @@ module TensorStream
         "#{auto_math(items[0])} > #{auto_math(items[1])}"
       when :square
         "#{auto_math(items[0])}\u00B2"
+      when :log
+        "log(#{auto_math(items[0])})"
       when :identity
         "identity(#{auto_math(items[0])})"
       else
