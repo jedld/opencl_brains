@@ -267,7 +267,7 @@ module TensorStream
       when :print
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-        puts "#{tensor.options[:message] || ""} #{b}"
+        puts "#{tensor.options.fetch(:message, '')} #{b}"
         cons(a)
       when :rank
         a = complete_eval(a, child_context)
