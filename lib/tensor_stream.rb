@@ -282,6 +282,10 @@ module TensorStream
     TensorStream::Operation.new(:transpose, tensor, nil, perm: perm, name: name)
   end
 
+  def self.pad(tensor, paddings, mode: 'CONSTANT', name: nil)
+    op(:pad, tensor, nil, paddings: paddings, mode: mode, name: name)
+  end
+
   def self.train
     TensorStream::Trainer
   end

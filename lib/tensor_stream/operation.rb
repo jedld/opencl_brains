@@ -128,6 +128,8 @@ module TensorStream
         "identity(#{auto_math(items[0])})"
       when :print
         "print(#{auto_math(items[0])})"
+      when :pad
+        "pad(#{auto_math(items[0])},#{auto_math(options[:paddings])})"
       else
         fail "math form for #{operation}"
       end

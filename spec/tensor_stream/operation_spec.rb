@@ -195,6 +195,42 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".pad" do
+    it "pads a tensor, rank 1" do
+      t = tf.constant([1, 2, 3])
+      paddings = tf.constant([[1,1]])
+      expect(tf.pad(t, paddings).eval).to eq([0, 1, 2, 3, 0])
+    end
+
+    it "pads a tensor, rank 2" do
+      t = tf.constant([[1, 2, 3], [4, 5, 6]])
+      paddings = tf.constant([[1, 1], [2, 2]])
+
+      expect(tf.pad(t, paddings, mode: "CONSTANT").eval).to eq(
+        [[0, 0, 0, 0, 0, 0, 0],
+         [0, 0, 1, 2, 3, 0, 0],
+         [0, 0, 4, 5, 6, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0]]
+      )
+
+      paddings_2 = tf.constant([[0, 1], [0, 2]])
+      expect(tf.pad(t, paddings_2, mode: "CONSTANT").eval).to eq(
+        [
+         [1, 2, 3, 0, 0],
+         [4, 5, 6, 0, 0],
+         [0, 0, 0, 0, 0]
+        ]
+      )
+
+      paddings_3 = tf.constant([[1, 0], [2, 0]])
+      expect(tf.pad(t, paddings_3, mode: "CONSTANT").eval).to eq(
+        [[0, 0, 0, 0, 0],
+         [0, 0, 1, 2, 3],
+         [0, 0, 4, 5, 6]]
+      )
+    end
+  end
+
   context ".print" do
     it "behaves like identity but prints a message to stdout" do
       x = tf.constant([[2.0, 2.0], [3.0, 3.0]])
@@ -401,6 +437,19 @@ end
         e = tf.eye(3, num_columns: 2)
         expect(e.eval).to eq([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]])
       end
+    end
+
+    specify "using in matrix multiplication" do
+      a = tf.constant([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
+      b = tf.constant([[0.1, 0.1], [0.1, 0.1], [0.2, 0.2]])
+      m = tf.matmul(a, b)
+      expect(m.eval).to eq([[0.9000000000000001, 0.9000000000000001], [0.9000000000000001, 0.9000000000000001]])
+
+      g = tf.gradients(m, [a])
+      expect(g.eval).to eq([[[0.2, 0.2, 0.4], [0.2, 0.2, 0.4]]])
+
+      d_wra = tf.matmul(tf.eye(a.shape[0]), b, transpose_b: true)
+      expect(d_wra.eval).to eq([[0.1, 0.1, 0.2], [0.1, 0.1, 0.2]])
     end
   end
 

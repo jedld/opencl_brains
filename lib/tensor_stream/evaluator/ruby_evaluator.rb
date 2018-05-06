@@ -284,6 +284,11 @@ module TensorStream
         new_shape = fix_inferred_elements(new_shape, flat_arr.size)
 
         cons(reshape(flat_arr, new_shape), dtype: a.data_type)
+      when :pad
+        a = complete_eval(a, child_context)
+        p = complete_eval(tensor.options[:paddings], child_context)
+
+        arr_pad(a, p, tensor.data_type)
       else
         fail "unknown op #{tensor.operation}"
       end.tap do |result|
@@ -313,6 +318,31 @@ module TensorStream
     end
 
     private
+
+    def arr_pad(arr, paddings, data_type = :float32, rank = 0)
+      fail "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
+
+      before = paddings[rank][0]
+      after = paddings[rank][1]
+
+      if arr[0].is_a?(Array)
+        next_dim_elem = arr.collect { |a| arr_pad(a, paddings, data_type, rank + 1) }
+        padding = deep_dup_array(next_dim_elem[0], data_type == :float32 ? 0.0 : 0)
+        before.times.map { padding } + next_dim_elem + after.times.map { padding }
+      else
+        before.times.map {  data_type == :float32 ? 0.0 : 0 } + arr + after.times.map {  data_type == :float32 ? 0.0 : 0 }
+      end
+    end
+
+    def deep_dup_array(arr, value = nil)
+      if arr.is_a?(Array)
+        arr.dup.collect do |a|
+          deep_dup_array(a, value)
+        end
+      else
+        value.nil? ? arr : value
+      end
+    end
 
     def slice_tensor(input, start, size)
       start_index = start.shift

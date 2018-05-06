@@ -12,7 +12,7 @@ module TensorStream
         grad = derivative(tensor.items[0], dx, options)
 
         case tensor.operation
-        when :identity, :print
+        when :identity, :print, :pad
           grad
         when :negate
           return cons(0, constant_options) if grad.value == 0
