@@ -10,6 +10,13 @@ module TensorStream
       }
     end
 
+    def reset
+      @nodes = {}
+      @collections = {
+        :"#{GraphKeys::GLOBAL_VARIABLES}" => []
+      }
+    end
+
     def self.get_default_graph
       Thread.current[:tensor_stream_current_graph] || create_default
     end

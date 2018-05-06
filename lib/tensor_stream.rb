@@ -29,6 +29,10 @@ module TensorStream
     TensorStream::Graph.get_default_graph
   end
 
+  def self.reset_default_graph
+    TensorStream::Graph.get_default_graph.reset
+  end
+
   def self.enable_eager_execution
     TensorStream::Graph.get_default_graph.enable_eager_execution
   end

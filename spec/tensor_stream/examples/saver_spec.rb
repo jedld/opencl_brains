@@ -29,4 +29,29 @@ RSpec.describe "TensorStream::Train::Saver" do
       print("Model saved in path: %s" % save_path)
     end
   end
+
+  it "restores variables using the saver" do
+    tf.reset_default_graph()
+
+    # Create some variables.
+    v1 = tf.get_variable("v1", shape: [3])
+    v2 = tf.get_variable("v2", shape: [5])
+
+    # Add ops to save and restore all the variables.
+    saver = tf::Train::Saver.new
+
+    # Later, launch the model, use the saver to restore variables from disk, and
+    # do some work with the model.
+    tf.Session do |sess|
+      # Restore variables from disk.
+      saver.restore(sess, "/tmp/model.ckpt")
+      print("Model restored.")
+      # Check the values of the variables
+      print("v1 : %s" % v1.eval())
+      print("v2 : %s" % v2.eval())
+
+      expect(v1.eval).to eq([1.0, 1.0, 1.0])
+      expect(v2.eval).to eq([-1.0, -1.0, -1.0, -1.0, -1.0])
+    end
+  end
 end
