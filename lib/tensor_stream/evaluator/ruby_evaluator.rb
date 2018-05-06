@@ -162,7 +162,7 @@ module TensorStream
         nil
       when :assign
         assign = tensor.items[0] || tensor
-        assign.value = run(tensor.items[1], child_context)
+        assign.value = complete_eval(tensor.items[1], child_context)
         assign.value
       when :assign_add
         tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a + b })

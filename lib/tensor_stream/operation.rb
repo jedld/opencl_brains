@@ -135,6 +135,10 @@ module TensorStream
       end
     end
 
+    def run
+      self.eval
+    end
+
     private
 
     def self.operation_counter
