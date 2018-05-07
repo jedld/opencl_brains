@@ -72,11 +72,9 @@ module TensorStream
           tensor_shape1 = tensor.items[1].shape ? tensor.items[1].shape.shape : nil
           tensor_shape0 = tensor.items[0].shape ? tensor.items[0].shape.shape : nil
 
-          derivative_a = derivative(tensor.items[0], dx, shape: tensor_shape1)
-          derivative_b = derivative(tensor.items[1], dx, shape: tensor_shape0)
+          derivative_a = derivative(tensor.items[0], dx, shape: tensor_shape1, target_shape: target_shape)
+          derivative_b = derivative(tensor.items[1], dx, shape: tensor_shape0, target_shape: target_shape)
 
-          # derivative_a = op(:reshape, derivative_a, op(:shape, tensor.items[1]))
-          # derivative_b = op(:reshape, derivative_b, op(:shape, tensor.items[0]))
           s0 =  op(:shape, tensor.items[0])
           s1 =  op(:shape, tensor.items[1])
 
@@ -90,14 +88,15 @@ module TensorStream
                                                      pad_zeros: true,
                                                      name:        'matrix_dy')
       
-          begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32)
-          begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32)
+          begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32, name: 'begin_a')
+          begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32, name: 'begin_b')
 
           end_a = op(:shape, tensor.items[0])
           end_b = op(:shape, tensor.items[1])
           norm_a = op(:slice, matmul_da, begin_a, size: end_a)
           norm_b = op(:slice, matmul_db, begin_b, size: end_b)
-          zero_vect = op(:zeros, target_shape)
+
+          zero_vect = op(:zeros, target_shape, nil, name: 'zero_vect')
 
           norm_a = op(:mul, norm_a, derivative_a)
           norm_b = op(:mul, norm_b, derivative_b)  

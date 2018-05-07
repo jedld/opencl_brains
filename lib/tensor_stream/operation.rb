@@ -130,6 +130,8 @@ module TensorStream
         "print(#{auto_math(items[0])})"
       when :pad
         "pad(#{auto_math(items[0])},#{auto_math(options[:paddings])})"
+      when :equal
+        "#{auto_math(items[0])} == #{auto_math(items[1])}"
       else
         fail "math form for #{operation}"
       end

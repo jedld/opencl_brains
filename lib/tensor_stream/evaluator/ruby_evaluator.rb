@@ -241,6 +241,12 @@ module TensorStream
         matrix_a = complete_eval(a, child_context)
         matrix_b = complete_eval(b, child_context)
 
+        rank_a = get_rank(matrix_a)
+        rank_b = get_rank(matrix_b)
+
+        fail "#{a.name} rank must be greater than 1" if rank_a < 2
+        fail "#{b.name} rank must be greater than 1" if rank_b < 2
+
         matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
         matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
 
