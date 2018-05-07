@@ -248,6 +248,7 @@ module TensorStream
 
     def breakpoint!(&block)
       @breakpoint = block
+      self
     end
 
     protected

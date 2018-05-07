@@ -24,7 +24,7 @@ RSpec.describe TensorStream::Operation do
       t2 = [[[7, 4], [8, 4]], [[2, 10], [15, 11]]]
       expect(tf.concat([t1, t2], -1).eval).to eq(
       [[[ 1,  2,  7,  4],
-        [ 2,  3,  8,  4]], 
+        [ 2,  3,  8,  4]],
        [[ 4,  4,  2, 10],
         [ 5,  3, 15, 11]]])
     end
@@ -515,6 +515,35 @@ end
       result2 = tf.cond(x > y, -> { tf.add(x, z) }, -> { tf.square(y) })
       expect(result.eval).to eq(8.0)
       expect(result2.eval).to eq(9.0)
+    end
+  end
+
+  context ".mul" do
+    it "performs elementwise multiplication" do
+      a = tf.constant([[1, 2, 3], [4, 5, 6]])
+      c = a * 6
+      expect(c.eval).to eq([[6, 12, 18], [24, 30, 36]])
+
+      b = tf.constant([1, 2, 3])
+      d = a * b
+      expect(d.eval).to eq([[1, 4, 9], [4, 10, 18]])
+    end
+
+    it "constant multiplication" do
+      a= tf.constant([[1, 2, 3], [4, 5, 6]])
+      c = tf.constant(6) * a
+      expect(a.eval).to eq([[1, 2, 3], [4, 5, 6]])
+
+      b= tf.constant([1,2,3,4,5,6])
+      d= tf.constant(6) * b
+      expect(d.eval).to eq([6, 12, 18, 24, 30, 36])
+    end
+
+    it "handles two rank 1 tensors" do
+      a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
+      b = tf.constant([-0.1079, 2.281999999999999, 1.1489, -0.5005000000000001, -3.5218999999999996])
+      c = a * b
+      expect(c.eval).to eq([-0.7553, 15.973999999999993, 8.042300000000001, -3.5035000000000003, -24.653299999999998])
     end
   end
 

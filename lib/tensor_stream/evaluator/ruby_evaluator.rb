@@ -273,7 +273,7 @@ module TensorStream
           target_shape = shape_eval(xs_val)
 
           gradient_program_name = "grad_#{tensor.name}_#{xs.name}".to_sym
-          
+
           tensor_program = if @context.key?(gradient_program_name)
             @context[gradient_program_name]
           else
@@ -323,6 +323,7 @@ module TensorStream
     rescue EvaluatorExcecutionException => e
       raise e
     rescue StandardError => e
+      binding.pry
       puts e.message
       puts e.backtrace.join("\n")
       raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"

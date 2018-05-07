@@ -3,7 +3,7 @@ module TensorStream
     extend TensorStream::OpHelper
 
     def self.derivative(tensor, dx, options = {})
-      constant_options = { dtype: options[:dtype] || tensor.data_type }
+      constant_options = { dtype: options[:dtype] || tensor.data_type}
       target_shape = options[:target_shape]
       return cons(1, constant_options) if tensor.equal?(dx)
       return cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
@@ -87,7 +87,7 @@ module TensorStream
           matmul_db = op(:matmul, tensor.items[0], identity_1, transpose_a: true,
                                                      pad_zeros: true,
                                                      name:        'matrix_dy')
-      
+
           # begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32, name: 'begin_a')
           # begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32, name: 'begin_b')
 
@@ -98,8 +98,8 @@ module TensorStream
 
           zero_vect = op(:zeros, target_shape, nil, name: 'zero_vect')
 
-          norm_a = op(:mul, matmul_da, derivative_a, name: 'grad_a_norm_mul_da')
-          norm_b = op(:mul, matmul_db, derivative_b, name: 'grad_b_norm_mul_db')  
+          norm_a = op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')
+          norm_b = op(:mul, derivative_b, matmul_db, name: 'grad_b_norm_mul_db')
           op(:cond, norm_a, zero_vect, pred: op(:shape, norm_a) == target_shape) + op(:cond, norm_b, zero_vect, pred: op(:shape, norm_b) == target_shape)
         else
           fail "no derivative implementation found for op #{tensor.operation}"
@@ -133,8 +133,8 @@ module TensorStream
     def self.grad_with_broadcast(tensor, dx, func, options)
       grad = derivative(tensor.items[0], dx, options)
       grad2 = derivative(tensor.items[1], dx, options)
-      elements1 = op(:reduce_prod, op(:shape, tensor.items[0]))
-      elements2 = op(:reduce_prod, op(:shape, tensor.items[1]))
+      elements1 = op(:reduce_prod, op(:shape, tensor.items[0]), data_type: :float32)
+      elements2 = op(:reduce_prod, op(:shape, tensor.items[1]), data_type: :float32)
       multiplier = elements1 / elements2
       func.call(grad, grad2 * multiplier)
     end
