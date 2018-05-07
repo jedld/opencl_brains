@@ -180,8 +180,12 @@ module TensorStream
     op(:greater, a, b, name: name)
   end
 
-  def self.reduce_sum(input_tensor, axis = nil, keepdims: false)
-    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims)
+  def self.reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
+    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
+  end
+
+  def self.reduce_prod(input, axis = nil, keepdims: false, name: nil)
+    op(:reduce_prod, input, nil, axis: axis, keepdims: keepdims, name: name)
   end
 
   def self.concat(values, axis, name: 'concat')
@@ -200,12 +204,12 @@ module TensorStream
     op(:cond, true_fn, false_fn, pred: pred, name: name)
   end
 
-  def self.add(a, b)
-    a + b
+  def self.add(a, b, name: nil)
+    op(:add, a, b, name: name)
   end
 
-  def self.sub(a, b)
-    a - b
+  def self.sub(a, b, name: nil)
+    op(:sub, a, b, name: name)
   end
 
   def self.print(input, data, message: nil, name: nil)

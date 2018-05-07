@@ -119,7 +119,7 @@ module TensorStream
       when :sub
         call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
       when :mul
-        call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
+        call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil?; t * u })
       when :pow
         call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
       when :concat
@@ -171,7 +171,7 @@ module TensorStream
         tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
         tensor.items[0].value
       when :reduce_sum
-        val = run(tensor.items[0], child_context)
+        val = complete_eval(tensor.items[0], child_context)
         axis = tensor.options[:axis]
         keep_dims = tensor.options[:keepdims]
         res = if axis.is_a?(Array)
@@ -182,6 +182,29 @@ module TensorStream
                 val.flatten.reduce(:+)
               else
                 reduce_axis(axis, val, keep_dims, child_context)
+              end
+        cons(res)
+      when :reduce_prod
+        val = complete_eval(tensor.items[0], child_context)
+        axis = tensor.options[:axis]
+        keep_dims = tensor.options[:keepdims]
+
+        func = ->(v) { 
+          if v.kind_of?(Array)
+             v.empty? ? 1.0 : v.reduce(:*)
+          else
+             v
+          end
+        }
+
+        res = if axis.is_a?(Array)
+                axis.each do |x|
+                  val = reduce_axis(x, val, keep_dims, child_context, func)
+                end
+
+                val.flatten.reduce(:*)
+              else
+                reduce_axis(axis, val, keep_dims, child_context, func)
               end
         cons(res)
       when :transpose
@@ -263,7 +286,16 @@ module TensorStream
           fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
           xs_val = complete_eval(xs, child_context)
           target_shape = shape_eval(xs_val)
-          derivative = complete_eval(TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape), child_context)
+
+          gradient_program_name = "grad_#{tensor.name}_#{xs.name}".to_sym
+          
+          tensor_program = if @context.key?(gradient_program_name)
+            @context[gradient_program_name]
+          else
+            @context[gradient_program_name] = TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
+          end
+
+          derivative = complete_eval(tensor_program, child_context)
 
           unit_matrix = cons(generate_vector(target_shape, generator: -> { xs.data_type == :int32 ? 1 : 1.0 } ))
           complete_eval(unit_matrix * cons(derivative), child_context)
@@ -298,6 +330,9 @@ module TensorStream
       else
         fail "unknown op #{tensor.operation}"
       end.tap do |result|
+        if tensor.breakpoint
+          tensor.breakpoint.call(complete_eval(result, child_context))
+        end
         @context[tensor.name.to_sym] = result
       end
     rescue EvaluatorExcecutionException => e

@@ -4,7 +4,7 @@ module TensorStream
   class Tensor
     include OpHelper
 
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint
 
     def self.const_name
       @const_counter ||= 0
@@ -39,6 +39,7 @@ module TensorStream
     def initialize(data_type, rank, shape, options = {})
       @data_type = data_type
       @rank = rank
+      @breakpoint = false
       @shape = TensorShape.new(shape, rank)
       @value = nil
       @is_const = options[:const] || false
@@ -243,6 +244,10 @@ module TensorStream
       else
         val
       end
+    end
+
+    def breakpoint!(&block)
+      @breakpoint = block
     end
 
     protected

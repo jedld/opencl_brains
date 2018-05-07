@@ -51,7 +51,12 @@ module TensorStream
 
           -op(:sin, tensor.items[0]) * grad
         when :add
-          grad + derivative(tensor.items[1], dx, options)
+          grad2 = derivative(tensor.items[1], dx, options)
+
+          elements1 = op(:reduce_prod, op(:shape, tensor.items[0]))
+          elements2 = op(:reduce_prod, op(:shape, tensor.items[1]))
+          multiplier = elements1 / elements2
+          grad + grad2 * multiplier
         when :sub
           grad - derivative(tensor.items[1], dx, options)
         when :pow

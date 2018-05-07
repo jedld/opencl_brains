@@ -89,7 +89,9 @@ module TensorStream
           "(#{auto_math(items[0])} * #{auto_math(items[1])})"
         end
       when :reduce_sum
-        "reduce_sum(|#{auto_math(items[0])} * #{auto_math(items[1])}|)"
+        "reduce_sum(|#{auto_math(items[0])}|)"
+      when :reduce_prod
+        "reduce_prod(|#{auto_math(items[0])}|)"
       when :gradients
         "gradient(#{auto_math(items[0])})"
       when :stop_gradient

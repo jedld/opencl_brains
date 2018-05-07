@@ -63,8 +63,8 @@ training_epochs = 10
 tf = TensorStream
 
 # tf Graph input
-X = tf.placeholder("float", shape: [nil, num_input], name: 'x')
-Y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
+x = tf.placeholder("float", shape: [nil, num_input], name: 'x')
+y = tf.placeholder("float", shape: [nil, num_classes], name: 'y')
 
 # Store layers weight & bias
 weights = {
@@ -83,18 +83,18 @@ biases = {
 # Create model
 def neural_net(x, weights, biases)
     # Hidden fully connected layer with 256 neurons
-    layer_1 =  TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1])
+    layer_1 =  TensorStream.add(TensorStream.matmul(x, weights[:h1]), biases[:b1] , name: 'layer1_add')
     # Hidden fully connected layer with 256 neurons
-    layer_2 = TensorStream.add(TensorStream.matmul(layer_1, weights[:h2]), biases[:b2])
+    layer_2 = TensorStream.add(TensorStream.matmul(layer_1, weights[:h2]), biases[:b2], name: 'layer2_add')
     # Output fully connected layer with a neuron for each class
     TensorStream.matmul(layer_2, weights[:out]) + biases[:out]
 end
 
 # Construct model
-logits = neural_net(X, weights, biases)
+logits = neural_net(x, weights, biases)
 
 # Mean squared error
-cost = TensorStream.reduce_sum(TensorStream.pow(logits - Y, 2)) / ( 2 * y_train.size)
+cost = TensorStream.reduce_sum(TensorStream.pow(logits - y, 2)) / ( 2 * y_train.size)
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)

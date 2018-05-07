@@ -182,6 +182,31 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".reduce_prod" do
+    it "computes the sum of elements across dimensions of a tensor." do
+      x = tf.constant([[2, 1, 2], [2, 1, 2]])
+      expect(tf.reduce_prod(x).eval).to eq(16)
+      expect(tf.reduce_prod(x, 0).eval).to eq([4, 1, 4])
+      expect(tf.reduce_prod(x, 1).eval).to eq([4, 4])
+      expect(tf.reduce_prod(x, 1, keepdims: true).eval).to eq([[4], [4]])
+      expect(tf.reduce_prod(x, [0, 1]).eval).to eq(16)
+    end
+
+    it "reduceing an empty array" do
+      x = tf.constant([])
+      y = tf.constant([[], []])
+      expect(tf.reduce_prod(x).eval).to eq(1.0)
+      expect(tf.reduce_prod(y, 0).eval).to eq([])
+      expect(tf.reduce_prod(y, 1).eval).to eq([1.0, 1.0])
+    end
+
+    xspecify "computes the gradients properly" do
+      a = tf.constant([[1,2,3],[4,5,6]])
+      op = tf.reduce_prod(a)
+      expect(tf.gradients(op,[a]).eval).to eq([[720, 360, 240],[180, 144, 120]])
+    end
+  end
+
   context ".pow" do
     it "Computes the power of tensor x to tensor y" do
       x = tf.constant([[2, 2], [3, 3]])
@@ -369,9 +394,9 @@ end
       
       y = tf.matmul(a, tf.sin(b))
 
-      expect(y.eval).to eq([[-2.0631189557280596, -4.010592786130136, -2.270746104760418], [-3.356285824907911, -7.042459285564211, -4.253828157037758]])
+      expect(tr(y.eval)).to eq([[-2.0631, -4.0106, -2.2707], [-3.3563, -7.0425, -4.2538]])
 
-      g = tf.gradients(y, [a,b])
+      g = tf.gradients(y, [a, b])
 
       expect(tr(g.eval)).to eq([[[2.0585, -2.0806, -2.0806], [2.0585, -2.0806, -2.0806]], [[3.7695, -0.7275, -4.5557], [-5.8735, 0.031, 5.907], [-7.5516, 0.0398, 7.5947]]])
     end
@@ -477,57 +502,6 @@ end
       var_grad = tf.gradients(loss, [var])[0]
 
       expect(var_grad.eval).to eq(0.5403023058681398)
-    end
-
-    it "computes for the derivative of a matrix multiplication operation" do
-      y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
-      x = tf.constant([[4.0, 5.0], [5.0, 6.0]], dtype: :float32)
-
-      c = tf.matmul(x, y)
-
-      expect(c.eval).to eq([[19, 28], [23, 34]])
-      c_grad = tf.gradients(c, [x, y])
-      expect(c_grad.eval).to eq([
-        [[3.0, 7.0], [3.0, 7.0]],
-        [[9.0, 9.0], [11.0, 11.0]]
-      ])
-    end
-
-    it 'should properly handle the gradient of non cubic matrices' do
-      y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
-      z = tf.constant([[4.0, 5.0]], dtype: :float32)
-      cz = tf.matmul(z, y)
-      z_grad = tf.gradients(cz, [y])
-      expect(z_grad.eval).to eq([
-        [[4.0, 4.0], [5.0, 5.0]]
-      ])
-    end
-
-    it 'should handle matrix gradients with incompatible transpositions' do
-      y = tf.constant([[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]], dtype: :float32)
-      z = tf.constant([[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]], dtype: :float32)
-      cz = tf.matmul(y, z)
-      expect(tr(cz.eval)).to eq([[17.5, 18.71], [32.8, 38.31]])
-      z_grad = tf.gradients(cz, [y, z])
-      expect(tr(z_grad.eval)).to eq(
-        [[[9.0 , 4.3, 8.1, 2.0 ],
-          [9.0 , 4.3, 8.1, 2.0 ]], 
-
-          [
-            [4.0 , 4.0 ],
-            [6.0 , 6.0 ],
-            [5.2, 5.2 ],
-            [1.7, 1.7 ]]])
-    end
-
-    it "should handle placeholders" do
-      x = tf.placeholder("float", shape: [nil, 4])
-      y = tf.placeholder("float", shape: [nil, 2])
-      cz = tf.matmul(x, y)
-      z_grad = tf.gradients(cz, [x, y])
-      expect(tr(z_grad.eval(feed_dict: {
-        x => [[1.0, 2.0 , 2.1, 0.8], [3.0, 4.0, 3.1, 0.9]],
-        y => [[4.0, 5.0], [1.1, 3.2], [5.0, 3.1], [1.0, 1.0]]}))).to eq([[[9.0, 4.3, 8.1, 2.0], [9.0, 4.3, 8.1, 2.0]], [[4.0, 4.0], [6.0, 6.0], [5.2, 5.2], [1.7, 1.7]]])
     end
   end
 
