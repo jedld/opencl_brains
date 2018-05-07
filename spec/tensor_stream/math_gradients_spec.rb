@@ -24,6 +24,26 @@ RSpec.describe TensorStream::MathGradients do
     end
   end
 
+  context "subtraction" do
+    it "handles shape differences, rank 2 vs 1" do
+      a = tf.constant([[1, 2],[3, 4],[5, 6]])
+      b = tf.constant([1, 1])
+      sum = a - b
+      g = tf.gradients(sum, [a, b])
+
+      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], [-3, -3]])
+    end
+
+    it "handles shape differences, rank 2 vs 0" do
+      a = tf.constant([[1, 2],[3, 4],[5, 6]])
+      b = tf.constant(1)
+      sum = a - b
+      g = tf.gradients(sum, [a, b])
+
+      expect(g.eval).to eq([[[1, 1], [1, 1], [1, 1]], -6])
+    end
+  end
+
   it "computes for the derivative of a matrix multiplication operation" do
     y = tf.constant([[1.0, 2.0], [3.0, 4.0]], dtype: :float32)
     x = tf.constant([[4.0, 5.0], [5.0, 6.0]], dtype: :float32)
@@ -93,6 +113,7 @@ RSpec.describe TensorStream::MathGradients do
       num_neurons = 5
       inputs = tf.placeholder("float", shape: [nil, num_inputs])
       biases = tf.constant([0.5012, 1.302, -1.6217, 0.669, 0.1494])
+      biases2 = tf.constant([0.2012, 1.102, -1.5217, 0.469, 0.0494])
 
       weights = tf.constant([
         [-0.9135, 1.0376, 0.8537, 0.4376, 1.3255],
@@ -100,33 +121,30 @@ RSpec.describe TensorStream::MathGradients do
         [0.7285, -0.7844, 0.1793, -0.5275, -0.4426],
         [-1.4976, 0.4433, 2.2317, -2.0479, 0.7791]])
       
-      matrix_mul = tf.matmul(inputs, weights)
+      weights_layer2 = tf.constant([
+        [-1.0465, -0.8766, 1.6849, -0.6625, 0.7928],
+        [2.0412, 1.3564, 0.7905, 0.6434, -2.5495],
+        [2.4276, -0.6893, -1.5917, 0.0911, 0.9112],
+        [-0.012, 0.0794, 1.3829, -1.018, -0.9328],
+        [0.061, 0.9791, -2.1727, -0.9553, -1.434]])
+        
+      
       sess = tf.Session()
-      output = sess.run(matrix_mul, feed_dict: { inputs => test_inputs })
-      expect(tr(output)).to eq(
-        [ [-0.2952, -0.6433, 1.9933, -1.52, 0.7723],
-          [1.7276, -0.9045, -0.6149, -1.4415, -2.4522],
-          [-0.6598, -2.4758, 2.7762, -3.1567, 0.7023],
-          [1.1583, 0.5777, -3.7443, 3.8771, -0.6305],
-          [2.994, 3.5073, -3.2316, 1.9586, -3.6351],
-          [-1.1397, -1.69, 1.2722, -0.6969, 1.5686],
-          [-3.1486, 1.9266, 1.4357, -0.5359, 1.7973]]
-      )
 
-      neural_net =  matrix_mul + biases
+      layer_1 =  tf.matmul(inputs, weights) + biases
+      neural_net = tf.matmul(layer_1, weights_layer2) + biases2
 
+      
       output = sess.run(neural_net, feed_dict: { inputs => test_inputs })
 
-      expect(tr(output)).to eq(
-        [
-          [0.206, 0.6587, 0.3716, -0.851, 0.9217],
-          [2.2288, 0.3975, -2.2366, -0.7725, -2.3028],
-          [-0.1586, -1.1738, 1.1545, -2.4877, 0.8517],
-          [1.6595, 1.8797, -5.366, 4.5461, -0.4811],
-          [3.4952, 4.8093, -4.8533, 2.6276, -3.4857],
-          [-0.6385, -0.388, -0.3495, -0.0279, 1.718],
-          [-2.6474, 3.2286, -0.186, 0.1331, 1.9467]
-        ]
+      expect(tr(output)).to eq([
+        [2.2988, 2.3936, -4.4248, 0.7761, -1.6559],
+        [-6.8807, -1.0869, 10.0429, 2.0307, 2.7878],
+        [0.8557, -0.5106, -9.8451, 1.6428, 5.0675],
+        [-10.8091, 5.7856, 18.6334, -4.0783, -11.8674],
+        [-5.6659, 4.7026, 27.1012, 1.4605, -11.3158],
+        [-0.6659, 3.0561, -6.1193, -1.0023, -2.2235],
+        [9.2274, 9.8467, -7.1795, 2.2881, -13.3659]]
       )
 
       g = tf.gradients(neural_net, [weights, biases])

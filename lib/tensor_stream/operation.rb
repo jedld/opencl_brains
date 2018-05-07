@@ -60,80 +60,86 @@ module TensorStream
       end
     end
 
-    def to_math
+    def to_math(name_only = false, max_depth = 99)
+      return @name if max_depth == 0
+
+      sub_item = auto_math(items[0], name_only, max_depth - 1)
+
       case operation
+      when :index
+        "#{sub_item}[#{auto_math(items[1], name_only)}]"
       when :slice
-        "#{auto_math(items[0])}[#{items[1]}]"
+        "#{sub_item}[#{auto_math(items[1], name_only)}]"
       when :assign_sub
-        "(#{items[0] ? items[0].name : "self"} -= #{auto_math(items[1])})"
+        "(#{items[0] ? items[0].name : "self"} -= #{auto_math(items[1], name_only)})"
       when :assign_add
-        "(#{items[0] ? items[0].name : "self"} += #{auto_math(items[1])})"
+        "(#{items[0] ? items[0].name : "self"} += #{auto_math(items[1], name_only)})"
       when :assign
-        "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1])})"
+        "(#{items[0] ? items[0].name : "self"} = #{auto_math(items[1], name_only)})"
       when :sin, :cos, :tanh
-        "#{operation}(#{auto_math(items[0])})"
+        "#{operation}(#{sub_item})"
       when :add
-       "(#{auto_math(items[0])} + #{auto_math(items[1])})"
+       "(#{sub_item} + #{auto_math(items[1], name_only, max_depth - 1)})"
       when :sub
-        "(#{auto_math(items[0])} - #{auto_math(items[1])})"
+        "(#{sub_item} - #{auto_math(items[1], name_only, max_depth - 1)})"
       when :pow
-        "(#{auto_math(items[0])}^#{auto_math(items[1])})"
+        "(#{sub_item}^#{auto_math(items[1], name_only, max_depth - 1)})"
       when :div
-        "(#{auto_math(items[0])} / #{auto_math(items[1])})"
+        "(#{sub_item} / #{auto_math(items[1], name_only, max_depth - 1)})"
       when :mul
         if auto_math(items[0]) == 1
-          auto_math(items[1])
+          auto_math(items[1], name_only, max_depth - 1)
         elsif auto_math(items[1]) == 1
-          auto_math(items[0])
+          sub_item
         else
-          "(#{auto_math(items[0])} * #{auto_math(items[1])})"
+          "(#{sub_item} * #{auto_math(items[1], name_only, max_depth - 1)})"
         end
       when :reduce_sum
-        "reduce_sum(|#{auto_math(items[0])}|)"
+        "reduce_sum(|#{sub_item}|)"
       when :reduce_prod
-        "reduce_prod(|#{auto_math(items[0])}|)"
+        "reduce_prod(|#{sub_item}|)"
       when :gradients
-        "gradient(#{auto_math(items[0])})"
+        "gradient(#{sub_item})"
       when :stop_gradient
-        auto_math(items[0])
+        sub_item
       when :matmul
-        "#{auto_math(items[0])}.matmul(#{auto_math(items[1])})"
+        "#{sub_item}.matmul(#{auto_math(items[1], name_only, max_depth - 1)})"
       when :eye
-        "eye(#{auto_math(items[0])})"
+        "eye(#{sub_item})"
       when :transpose
-        "transpose(#{auto_math(items[0])})"
+        "transpose(#{sub_item})"
       when :shape
-        "#{auto_math(items[0])}.shape"
+        "#{sub_item}.shape"
       when :exp
-        "e^#{auto_math(items[0])}"
+        "e^#{sub_item})"
       when :ones
-        "ones(#{items[0]})"
+        "ones(#{sub_item})"
       when :flow_group
         "flow_group(#{items.collect { |i| auto_math(i)}.join(',')})"
       when :zeros
-        "zeros(#{items[0]})"
+        "zeros(#{sub_item})"
       when :reshape
-        "reshape(#{auto_math(items[0])},#{auto_math(items[1])})"
+        "reshape(#{sub_item},#{auto_math(items[1])})"
       when :rank
-        "#{auto_math(items[0])}.rank"
+        "#{sub_item}.rank"
       when :cond
-        "(#{auto_math(options[:pred])} ? #{auto_math(items[0])} : #{auto_math(items[1])})"
+        "(#{auto_math(options[:pred])} ? #{sub_item} : #{auto_math(items[1], name_only, max_depth - 1)})"
       when :less
-        "#{auto_math(items[0])} < #{auto_math(items[1])}"
+        "#{sub_item} < #{auto_math(items[1], name_only, max_depth - 1)}"
       when :greater
-        "#{auto_math(items[0])} > #{auto_math(items[1])}"
+        "#{sub_item} > #{auto_math(items[1], name_only, max_depth - 1)}"
       when :square
-        "#{auto_math(items[0])}\u00B2"
+        "#{sub_item}\u00B2"
       when :log
-        "log(#{auto_math(items[0])})"
+        "log(#{sub_item})"
       when :identity
-        "identity(#{auto_math(items[0])})"
+        "identity(#{sub_item})"
       when :print
-        "print(#{auto_math(items[0])})"
+        "print(#{sub_item})"
       when :pad
-        "pad(#{auto_math(items[0])},#{auto_math(options[:paddings])})"
+        "pad(#{sub_item},#{auto_math(options[:paddings])})"
       when :equal
-        "#{auto_math(items[0])} == #{auto_math(items[1])}"
+        "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
       else
         fail "math form for #{operation}"
       end

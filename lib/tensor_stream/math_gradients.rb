@@ -51,14 +51,9 @@ module TensorStream
 
           -op(:sin, tensor.items[0]) * grad
         when :add
-          grad2 = derivative(tensor.items[1], dx, options)
-
-          elements1 = op(:reduce_prod, op(:shape, tensor.items[0]))
-          elements2 = op(:reduce_prod, op(:shape, tensor.items[1]))
-          multiplier = elements1 / elements2
-          grad + grad2 * multiplier
+          grad_with_broadcast(tensor, dx, ->(a,b) { op(:add, a, b, name: 'grad_sum') } , options)
         when :sub
-          grad - derivative(tensor.items[1], dx, options)
+          grad_with_broadcast(tensor, dx, ->(a,b) { op(:sub, a, b, name: 'grad_sub') } , options)
         when :pow
           return cons(0, constant_options) if grad.value == 0
 
@@ -103,8 +98,8 @@ module TensorStream
 
           zero_vect = op(:zeros, target_shape, nil, name: 'zero_vect')
 
-          norm_a = op(:mul, norm_a, derivative_a)
-          norm_b = op(:mul, norm_b, derivative_b)  
+          norm_a = op(:mul, norm_a, derivative_a, name: 'grad_a_norm_mul_da')
+          norm_b = op(:mul, norm_b, derivative_b, name: 'grad_b_norm_mul_db')  
           op(:cond, norm_a, zero_vect, pred: op(:shape, norm_a) == target_shape) + op(:cond, norm_b, zero_vect, pred: op(:shape, norm_b) == target_shape)
         else
           fail "no derivative implementation found for op #{tensor.operation}"
@@ -134,6 +129,15 @@ module TensorStream
     end
 
     private
+
+    def self.grad_with_broadcast(tensor, dx, func, options)
+      grad = derivative(tensor.items[0], dx, options)
+      grad2 = derivative(tensor.items[1], dx, options)
+      elements1 = op(:reduce_prod, op(:shape, tensor.items[0]))
+      elements2 = op(:reduce_prod, op(:shape, tensor.items[1]))
+      multiplier = elements1 / elements2
+      func.call(grad, grad2 * multiplier)
+    end
 
     def self._include?(arr, obj)
       arr.each { |a| return true if a.equal?(obj) }

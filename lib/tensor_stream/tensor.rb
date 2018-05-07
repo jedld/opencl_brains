@@ -197,18 +197,18 @@ module TensorStream
       @value
     end
 
-    def to_math
-      return @name if @value.nil?
+    def to_math(name_only = false, max_depth = 99)
+      return @name if max_depth==0 || name_only || @value.nil?
       
       if @value.kind_of?(Array)
-        @value.collect { |v| v.kind_of?(Tensor) ? v.to_math : v }
+        @value.collect { |v| v.kind_of?(Tensor) ? v.to_math(name_only, max_depth - 1) : v }
       else
         is_const ? @value : @name
       end
     end
 
-    def auto_math(tensor)
-      tensor.kind_of?(Tensor) ? tensor.to_math : tensor
+    def auto_math(tensor, name_only = false, max_depth = 99)
+      tensor.kind_of?(Tensor) ? tensor.to_math(name_only, max_depth) : tensor
     end
 
     def self.detect_type(value)

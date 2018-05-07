@@ -171,42 +171,27 @@ module TensorStream
         tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
         tensor.items[0].value
       when :reduce_sum
-        val = complete_eval(tensor.items[0], child_context)
-        axis = tensor.options[:axis]
-        keep_dims = tensor.options[:keepdims]
-        res = if axis.is_a?(Array)
-                axis.each do |x|
-                  val = reduce_axis(x, val, keep_dims, child_context)
-                end
-
-                val.flatten.reduce(:+)
-              else
-                reduce_axis(axis, val, keep_dims, child_context)
-              end
-        cons(res)
-      when :reduce_prod
-        val = complete_eval(tensor.items[0], child_context)
-        axis = tensor.options[:axis]
-        keep_dims = tensor.options[:keepdims]
-
+        c = tensor.data_type == :float ? 0.0 : 0
         func = ->(v) { 
           if v.kind_of?(Array)
-             v.empty? ? 1.0 : v.reduce(:*)
+             v.empty? ? c : v.reduce(:+)
           else
              v
           end
         }
 
-        res = if axis.is_a?(Array)
-                axis.each do |x|
-                  val = reduce_axis(x, val, keep_dims, child_context, func)
-                end
+        reduction(child_context, tensor, func)
+      when :reduce_prod
+        c = tensor.data_type == :float ? 1.0 : 1
+        func = ->(v) { 
+          if v.kind_of?(Array)
+             v.empty? ? c : v.reduce(:*)
+          else
+             v
+          end
+        }
 
-                val.flatten.reduce(:*)
-              else
-                reduce_axis(axis, val, keep_dims, child_context, func)
-              end
-        cons(res)
+        reduction(child_context, tensor, func)
       when :transpose
         matrix_a = complete_eval(a, child_context)
         cons(matrix_a.transpose)
@@ -360,6 +345,22 @@ module TensorStream
 
     private
 
+    def reduction(child_context, tensor, func)
+      val = complete_eval(tensor.items[0], child_context)
+      axis = tensor.options[:axis]
+      keep_dims = tensor.options[:keepdims]
+
+      res = if axis.is_a?(Array)
+              axis.each do |x|
+                val = reduce_axis(x, val, keep_dims, child_context, func)
+              end
+
+              func.call(val.flatten)
+            else
+              reduce_axis(axis, val, keep_dims, child_context, func)
+            end
+      cons(res)
+    end
     def arr_pad(arr, paddings, data_type = :float32, rank = 0)
       fail "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
 

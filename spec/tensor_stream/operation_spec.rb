@@ -167,11 +167,11 @@ RSpec.describe TensorStream::Operation do
 
   context ".reduce_sum" do
     it "computes the sum of elements across dimensions of a tensor." do
-      x = TensorStream.constant([[1, 1, 1], [1, 1, 1]])
-      expect(TensorStream.reduce_sum(x).eval).to eq(6)
-      expect(TensorStream.reduce_sum(x, 0).eval).to eq([2, 2, 2])
-      expect(TensorStream.reduce_sum(x, 1).eval).to eq([3, 3])
-      expect(TensorStream.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
+      x = tf.constant([[1, 1, 1], [1, 1, 1]])
+      expect(tf.reduce_sum(x).eval).to eq(6)
+      expect(tf.reduce_sum(x, 0).eval).to eq([2, 2, 2])
+      expect(tf.reduce_sum(x, 1).eval).to eq([3, 3])
+      expect(tf.reduce_sum(x, 1, keepdims: true).eval).to eq([[3], [3]])
       expect(tf.reduce_sum(x, [0, 1]).eval).to eq(6)
     end
 
