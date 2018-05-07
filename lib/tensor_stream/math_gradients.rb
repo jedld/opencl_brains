@@ -77,10 +77,19 @@ module TensorStream
 
           # derivative_a = op(:reshape, derivative_a, op(:shape, tensor.items[1]))
           # derivative_b = op(:reshape, derivative_b, op(:shape, tensor.items[0]))
-          matmul_da = op(:matmul, derivative_a, tensor.items[1], transpose_b: true,
+          s0 =  op(:shape, tensor.items[0])
+          s1 =  op(:shape, tensor.items[1])
+
+          identity_0 = op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[0].data_type)
+          identity_1 = op(:ones, [s0[0], s1[1]], nil, data_type: tensor.items[1].data_type)
+
+          matmul_da = op(:matmul, identity_0, tensor.items[1], transpose_b: true,
+                                                     pad_zeros: true,
                                                      name:        'matrix_dx')
-          matmul_db = op(:matmul, tensor.items[0], derivative_b, transpose_a: true,
+          matmul_db = op(:matmul, tensor.items[0], identity_1, transpose_a: true,
+                                                     pad_zeros: true,
                                                      name:        'matrix_dy')
+      
           begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32)
           begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32)
 
@@ -90,6 +99,8 @@ module TensorStream
           norm_b = op(:slice, matmul_db, begin_b, size: end_b)
           zero_vect = op(:zeros, target_shape)
 
+          norm_a = op(:mul, norm_a, derivative_a)
+          norm_b = op(:mul, norm_b, derivative_b)  
           op(:cond, norm_a, zero_vect, pred: op(:shape, norm_a) == target_shape) + op(:cond, norm_b, zero_vect, pred: op(:shape, norm_b) == target_shape)
         else
           fail "no derivative implementation found for op #{tensor.operation}"

@@ -25,14 +25,10 @@ module TensorStream
           variables[variable.name] = variable.value
         end
 
-        ext = File.extname(outputfile)
-        basename = File.basename(outputfile, ext)
+        basename = File.basename(outputfile)
         path = File.dirname(outputfile)
 
-
-        newbasename = [basename, gs].compact.join('_')
-
-        new_filename = File.join(path, "#{newbasename}#{ext}")
+        new_filename = File.join(path, [basename, gs].compact.join('-'))
         File.write(new_filename, output_dump.to_json)
 
         path
