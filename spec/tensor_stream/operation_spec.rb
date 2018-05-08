@@ -678,6 +678,59 @@ end
     end
   end
 
+  context "multivariate functions" do
+    let(:a)   { tf.constant(1.0) }
+    let(:b)   { tf.constant(2.0) }
+    let(:a_1) { tf.constant([1.0, 1.5]) }
+    let(:b_1) { tf.constant([2.0, 0.1]) }
+    let(:a_2) { tf.constant([[1.0, 1.5],[0.8,  0.2]]) }
+    let(:b_2) { tf.constant([[2.0, 0.1],[3.0, 0.01]]) }
+
+    def func_test(op, x, y, e1, e2)
+      func = tf.send(op.to_sym, x, y)
+      expect(tr(func.eval)).to eq(e1)
+      grad = tf.gradients(func, [x, y])
+      expect(tr(grad.eval)).to eq(e2)
+    end
+
+    [ 
+      #op   rank 0   rank 1   rank 2   grad 0   grad 1  grad 2
+      [:add, 3.0,  [3.0, 1.6],  [[3.0, 1.6], [3.8, 0.21]],    [1.0,  1.0],  [[1.0, 1.0], [1.0,   1.0]],  [[[1.0, 1.0], [1.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]]] ],
+      [:sub, -1.0, [-1.0, 1.4], [[-1.0, 1.4], [-2.2, 0.19]],  [1.0, -1.0],  [[1.0, 1.0], [-1.0, -1.0]],   [[[1.0, 1.0], [1.0, 1.0]], [[-1.0, -1.0], [-1.0, -1.0]]] ],
+    ].each do |op, expected_0, expected_1, expected_2, expected_grad_0, expected_grad_1, expected_grad_2|
+      context ".#{op}" do
+
+
+        specify "basic scalar operation" do
+          func_test(op, a, b, expected_0, expected_grad_0)
+        end
+
+        specify "basic rank 1 operation" do
+          func_test(op, a_1, b_1, expected_1, expected_grad_1)
+        end
+
+        specify "basic rank 2 operation" do
+          func_test(op, a_2, b_2, expected_2, expected_grad_2)
+        end
+      end
+    end
+
+    [
+      [:add, [3.0, 3.5],   [[3.0, 3.5], [2.8, 2.2]], [[1.0, 1.0], 2.0],       [[[1.0, 1.0], [1.0, 1.0]], 4.0] ],
+      [:sub, [-1.0, -0.5], [[-1.0, -0.5], [-1.2, -1.8]], [[1.0, 1.0], -2.0],  [[[1.0, 1.0], [1.0, 1.0]], -4.0] ],
+    ].each do |op, expected_1_0, expected_2_0, grad_1_0, grad_2_0|
+      context ".#{op}" do
+        specify "mixed rank operation 1  vs 0" do
+          func_test(op, a_1, b, expected_1_0, grad_1_0)
+        end
+
+        specify "mixed rank operation 2  vs 0" do
+          func_test(op, a_2, b, expected_2_0, grad_2_0)
+        end
+      end
+    end
+  end
+
   context ".div" do
     let(:a) { tf.constant(2.5) }
     let(:b) { tf.constant(3.1) }
