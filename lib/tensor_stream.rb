@@ -224,6 +224,10 @@ module TensorStream
     TensorStream::Operation.new(:equal, a, b, options)
   end
 
+  def self.zeros_like(tensor, dtype: nil, name: nil)
+    op(:zeros_like, tensor, nil, data_type: dtype, name: name)
+  end
+
   def self.identity(input, name: name)
     op(:identity, input, nil, name: name)
   end
@@ -266,6 +270,15 @@ module TensorStream
     options[:data_type] ||= :float32
     check_allowed_types(a, %w(float32 float64))
     TensorStream::Operation.new(:tanh, a, nil, options)
+  end
+
+  def self.sqrt(a, name: nil)
+    options = {
+      data_type: a.data_type,
+      name: name
+    }
+    check_allowed_types(a, %w(float32 float64))
+    op(:sqrt, a, nil, options)
   end
 
   def self.log(a, options= {})

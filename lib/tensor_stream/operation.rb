@@ -140,6 +140,10 @@ module TensorStream
         "pad(#{sub_item},#{auto_math(options[:paddings])})"
       when :equal
         "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
+      when :sqrt
+        "sqrt(#{sub_item})"
+      when :zeros_like
+        "zeros_like(#{sub_item})"
       else
         fail "math form for #{operation}"
       end

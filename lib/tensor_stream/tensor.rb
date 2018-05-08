@@ -197,6 +197,10 @@ module TensorStream
       @value
     end
 
+    def first
+      op(:index, self, 0)
+    end
+
     def to_math(name_only = false, max_depth = 99)
       return @name if max_depth==0 || name_only || @value.nil?
       

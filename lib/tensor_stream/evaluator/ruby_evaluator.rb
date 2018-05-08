@@ -100,7 +100,7 @@ module TensorStream
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
 
-        (a == b)
+        call_vector_op(:greater, a, b, child_context, ->(t, u) { t == u })
       when :index
         f = run(a, child_context)
         index = run(b, child_context)
@@ -142,6 +142,8 @@ module TensorStream
         call_op(:log, a, child_context, ->(t, _b) { Math.log(t) } )
       when :exp
         call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
+      when :sqrt
+        call_op(:exp, a, child_context, ->(t, _b) { Math.sqrt(t) } )
       when :square
         call_op(:square, a, child_context, ->(t, _b) { t * t } )
       when :stop_gradient
@@ -208,10 +210,10 @@ module TensorStream
             end
           end
         end
-      when :cond
+      when :cond, :where
         pred = complete_eval(tensor.options[:pred], child_context)
 
-        if pred
+        if is_all_true(pred)
           complete_eval(a, child_context)
         else
           complete_eval(b, child_context)
@@ -220,26 +222,32 @@ module TensorStream
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
 
-        a < b
+        call_vector_op(:greater, a, b, child_context, ->(t, u) { t < u })
       when :greater
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
 
-        a > b
-      when :zeros, :ones
-        s = complete_eval(a, child_context) || tensor.shape.shape
+        call_vector_op(:greater, a, b, child_context, ->(t, u) { t > u })
+      when :zeros, :ones, :zeros_like, :ones_like
 
-        func = if tensor.operation == :zeros
+        shape = if [:zeros_like, :ones_like].include?(tensor.operation)
+          a = complete_eval(a, child_context)
+          shape_eval(a)
+        else
+          complete_eval(a, child_context) || tensor.shape.shape
+        end
+
+        func = if [:zeros, :zeros_like].include?(tensor.operation)
                  ->() { tensor.data_type == :int32 ? 0 : 0.0 }
                else
                  ->() { tensor.data_type == :int32 ? 1 : 1.0 }
                end
 
-        if s.is_a?(Array) && s.size == 0
+        if shape.is_a?(Array) && shape.size == 0
           cons(func.call())
         else
-          s = [s.to_i] unless s.is_a?(Array)
-          cons(generate_vector(s, generator: func))
+          shape = [shape.to_i] unless shape.is_a?(Array)
+          cons(generate_vector(shape, generator: func))
         end
       when :shape
         input = complete_eval(a, child_context)
@@ -323,7 +331,7 @@ module TensorStream
     rescue EvaluatorExcecutionException => e
       raise e
     rescue StandardError => e
-      binding.pry
+      # binding.pry
       puts e.message
       puts e.backtrace.join("\n")
       raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"
@@ -457,15 +465,15 @@ module TensorStream
       # ruby scalar
       if get_rank(eval_a) == 0
         if (get_rank(eval_b)) == 0
-          TensorStream.constant(op.call(eval_a,eval_b), dtype: a.dtype)
+          op.call(eval_a,eval_b)
         else
-          TensorStream.constant(constant_op(eval_b, eval_a, child_context, op, true))
+          constant_op(eval_b, eval_a, child_context, op, true)
         end
       elsif get_rank(eval_a) > 0
         if get_rank(eval_b) > 0
-          TensorStream.constant(vector_op(eval_a, eval_b, child_context, op))
+          vector_op(eval_a, eval_b, child_context, op)
         else
-          TensorStream.constant(constant_op(eval_a, eval_b, child_context, op))
+         constant_op(eval_a, eval_b, child_context, op)
         end
       end
     end
@@ -577,20 +585,31 @@ module TensorStream
       v_b = run(vector2, child_context)
 
       v_a.each_with_index.collect do |item, index|
+        next vector_op(item, v_b, child_context, op) if item.is_a?(Array) && get_rank(v_a) > get_rank(v_b)
+
+        z = index < v_b.size ? v_b[index] : v_b[0]
+
         if item.is_a?(Array)
-          if get_rank(v_a) > get_rank(v_b)
-            vector_op(item, v_b, child_context, op) # derank v1
-          else
-            constant_op(item, v_b[index], child_context, op)
-          end
+          constant_op(item, z, child_context, op)
         else
           if item.respond_to?(:value)
-            op.(item.value, v_b[index].value)
+            op.(item.value, z.value)
           else
-            op.(item, v_b[index])
+            op.(item, z)
           end
         end
       end
+    end
+
+    def is_all_true(arr)
+      if arr.is_a?(Array)
+        arr.each do |a| 
+          return false if !is_all_true(a)
+        end
+        return true
+      end
+
+      !!arr
     end
 
     def vector_add(vector, vector2, child_context)

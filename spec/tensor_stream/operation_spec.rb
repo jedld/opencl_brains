@@ -10,6 +10,15 @@ RSpec.describe TensorStream::Operation do
   end
 
   let(:tf) { TensorStream } # allow calls to look like tensorflow
+  let(:sess) { tf.Session }
+
+  context ".zeros_like" do
+    it "Creates a tensor with all elements set to zero." do
+      tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
+      z = tf.zeros_like(tensor)
+      expect(z.eval).to eq([[0, 0, 0], [0, 0, 0]])
+    end
+  end
 
   context ".concat" do
     it "Concatenates tensors along one dimension." do
@@ -99,16 +108,16 @@ RSpec.describe TensorStream::Operation do
 
   context ".equal" do
     it "returns the truth value of two tensors" do
-      a = TensorStream.constant(1.0)
-      b = TensorStream.constant(1.0)
-      c = TensorStream.constant(2.1)
-      d = TensorStream.constant([[1.0]])
-      e = TensorStream.constant([[1.0]])
-      f = TensorStream.constant([[2.0]])
-      expect(TensorStream.equal(a, b).eval).to eq(true)
-      expect(TensorStream.equal(a, c).eval).to eq(false)
-      expect(TensorStream.equal(d, e).eval).to eq(true)
-      expect(TensorStream.equal(e, f).eval).to eq(false)
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([[1.0]])
+      e = tf.constant([[1.0]])
+      f = tf.constant([[2.0]])
+      expect(tf.equal(a, b).eval).to eq(true)
+      expect(tf.equal(a, c).eval).to eq(false)
+      expect(tf.equal(d, e).eval).to eq([[true]])
+      expect(tf.equal(e, f).eval).to eq([[false]])
 
       expect((a == b).eval).to eq(true)
       expect((a == c).eval).to eq(false)
@@ -212,11 +221,21 @@ RSpec.describe TensorStream::Operation do
       x = tf.constant([[2, 2], [3, 3]])
       y = tf.constant([[8, 16], [2, 3]])
       p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
-      sess = tf.Session
       expect(sess.run(p)).to eq([[256, 65536], [9, 27]])
 
       p = tf.pow(x, 2)
       expect(sess.run(p)).to eq([[4, 4], [9, 9]])
+    end
+
+    it "gradients of the power rule" do
+      x = tf.constant([[1.1, 1.3], [1.3, 1.2]])
+      y = tf.constant([[1.5, 2.0], [1.1, 2.0]])
+      p = tf.pow(x, y)  # [[256, 65536], [9, 27]]
+      g = tf.gradients(p, [x, y])
+      expect(tr(sess.run(g))).to eq([
+        [[1.5732, 2.6], [1.1292, 2.4]],
+        [[0.11, 0.4434], [0.3501, 0.2625]]
+      ])
     end
   end
 
@@ -302,7 +321,7 @@ RSpec.describe TensorStream::Operation do
       z = -tf.constant(4.1)
       x_negate = tf.negate(x)
       y_negate = tf.negate(y)
-      sess = tf.Session
+
       expect(sess.run(x_negate)).to eq(-0.1)
       expect(sess.run(y_negate)).to eq([[-1.1, -16.1], [-2.1, -3.0]])
       expect(sess.run(z)).to eq(-4.1)
@@ -311,21 +330,21 @@ RSpec.describe TensorStream::Operation do
 
   # tests for single parameter algebra functions
 [
-  [:sin, 0.0998,   [[0.8912, -0.3821], [0.8632, 0.1411]],  0.995, [[0.4536, -0.9241], [-0.5048, -0.99]]            ],
-  [:cos, 0.995,    [[0.4536, -0.9241], [-0.5048, -0.99]], -0.0998, [[-0.8912, 0.3821], [-0.8632, -0.1411]]          ],
-  [:tan, 0.1003,   [[1.9648, 0.4134], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 1.1709], [3.9236, 1.0203]]          ],
-  [:tanh, 0.0997,  [[0.8005, 1.0], [0.9705, 0.9951]],      0.9901, [[0.3592, 0.0], [0.0582, 0.0099]]                  ],
-  [:log, -2.3026,  [[0.0953, 2.7788], [0.7419, 1.0986]],   10.0, [[0.9091, 0.0621], [0.4762, 0.3333]]              ],
-  [:exp, 1.1052,   [[3.0042, 9820670.9221], [8.1662, 20.0855]], 1.1052, [[3.0042, 9820670.9221], [8.1662, 20.0855]]],
-  [:square, 0.01,  [[1.21, 259.21], [4.41, 9.0]],          0.2, [[2.2, 32.2], [4.2, 6.0]]                                  ],
-  [:negate, -0.1,  [[-1.1, -16.1], [-2.1, -3.0]],         -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                              ],
+  [:sin, 0.0998,   [[0.8912, -0.3821], [0.8632, 0.1411]],  0.995, [[0.4536, -0.9241], [-0.5048, -0.99]]                      ],
+  [:cos, 0.995,    [[0.4536, -0.9241], [-0.5048, -0.99]], -0.0998, [[-0.8912, 0.3821], [-0.8632, -0.1411]]                   ],
+  [:tan, 0.1003,   [[1.9648, 0.4134], [-1.7098, -0.1425]], 1.0101,  [[4.8603, 1.1709], [3.9236, 1.0203]]                     ],
+  [:tanh, 0.0997,  [[0.8005, 1.0], [0.9705, 0.9951]],      0.9901, [[0.3592, 0.0], [0.0582, 0.0099]]                         ],
+  [:log, -2.3026,  [[0.0953, 2.7788], [0.7419, 1.0986]],   10.0, [[0.9091, 0.0621], [0.4762, 0.3333]]                        ],
+  [:exp, 1.1052,   [[3.0042, 9820670.9221], [8.1662, 20.0855]], 1.1052, [[3.0042, 9820670.9221], [8.1662, 20.0855]]          ],
+  [:square, 0.01,  [[1.21, 259.21], [4.41, 9.0]],          0.2, [[2.2, 32.2], [4.2, 6.0]]                                    ],
+  [:negate, -0.1,  [[-1.1, -16.1], [-2.1, -3.0]],         -1.0, [[-1.0, -1.0], [-1.0, -1.0]]                                 ],
   [:identity, 0.1, [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
   [:abs, 0.1,      [[1.1, 16.1], [2.1, 3.0]],             1.0, [[1, 1], [1, 1]]                                              ],
+  [:sqrt, 0.3162,  [[1.0488, 4.0125], [1.4491, 1.7321]],   1.5811, [[0.4767, 0.1246], [0.345, 0.2887]]                       ],
 ].each do |func, scalar, matrix, gradient, gradient2|
   context ".#{func}" do
     let(:x) { tf.constant(0.1) }
     let(:y) {  tf.constant([[1.1, 16.1], [2.1, 3.0]]) }
-    let(:sess) { tf.Session }
     let(:f_x) { tf.send(func,x) }
     let(:f_y) { tf.send(func,y) }
 
@@ -338,8 +357,8 @@ RSpec.describe TensorStream::Operation do
     end
 
     specify "gradient #{func} values" do
-      grad = tf.gradients(f_x, [x])[0]
-      grad_2 = tf.gradients(f_y, [y])[0]
+      grad = tf.gradients(f_x, [x]).first
+      grad_2 = tf.gradients(f_y, [y]).first
       expect(tr(sess.run(grad))).to eq(gradient)
       expect(tr(sess.run(grad_2))).to eq(gradient2)
     end
@@ -407,7 +426,7 @@ end
       tf.program do |tf|
         x = tf.constant([[1, 2, 3], [4, 5, 6]])
         t = tf.transpose(x)
-        sess = tf.Session
+
         expect(sess.run(t)).to eq([[1, 4], [2, 5], [3, 6]])
       end
     end
@@ -545,6 +564,13 @@ end
       c = a * b
       expect(c.eval).to eq([-0.7553, 15.973999999999993, 8.042300000000001, -3.5035000000000003, -24.653299999999998])
     end
+
+    it "handles different rows" do
+      a = tf.constant([[1.0, 1.0], [1.0, 1.0]])
+      b = tf.constant([[4.0, 4.0]])
+      c = a * b
+      expect(c.eval).to eq([[4.0, 4.0], [4.0, 4.0]])
+    end
   end
 
   context ".less" do
@@ -562,6 +588,12 @@ end
       b = tf.constant(3.0)
       expect(tf.greater(a, b).eval).to eq(false)
       expect(tf.greater(b, a).eval).to eq(true)
+    end
+
+    it "handles rank 1 or higher" do
+      a = tf.constant([[1.1, 1.3], [1.3, 1.2]])
+      c = a > 0
+      expect(c.eval).to eq([[true, true], [true, true]])
     end
   end
 

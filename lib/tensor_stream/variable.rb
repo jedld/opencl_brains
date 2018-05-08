@@ -32,7 +32,7 @@ module TensorStream
       Operation.new(:assign_add, self, value)
     end
 
-    def to_math
+    def to_math(tensor, name_only = false, max_depth = 99)
       @name
     end
 
