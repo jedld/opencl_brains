@@ -8,7 +8,6 @@ module TensorStream
       TensorStream.constant(value, options)
     end
 
-
     def shape_eval(input)
       return [] unless input.kind_of?(Array)
       arr = []
@@ -23,5 +22,28 @@ module TensorStream
 
       arr
     end
+
+  def dtype_eval(dtype, rank, value)
+    dtype = Tensor.detect_type(value[0])
+    rank+=1 if dtype == :array
+
+    [dtype, rank, value[0], value.size]
+  end
+
+  def val_to_dtype(value, rank = 0)
+    dtype = if value.is_a?(String)
+      :string
+    elsif value.is_a?(Float)
+      :float32
+    elsif value.is_a?(Integer)
+      :int32
+    elsif value.is_a?(Array)
+      rank += 1
+      :array
+    else
+      :float32
+    end
+    dtype
+  end
   end
 end

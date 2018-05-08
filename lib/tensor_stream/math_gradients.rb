@@ -14,26 +14,30 @@ module TensorStream
         grad2 = derivative(tensor.items[1], dx, options) if tensor.items[1]
 
         case tensor.operation
+        when :where
+          op(:where, grad, grad2, pred: tensor.options[:pred])
+        when :cond
+          op(:cond, grad, grad2, pred: tensor.options[:pred])
         when :identity, :print, :pad
           grad
         when :negate
           cons(-1, constant_options) * grad
         when :abs
-          grad * op(:sign, tensor.items[0])
+          grad * op(:sign, _ds(tensor.items[0]))
         when :square
-          cons(2, constant_options) * tensor.items[0] * grad
+          cons(2, constant_options) * _ds(tensor.items[0]) * grad
         when :exp
           op(:exp, tensor.items[0]) * grad
         when :log
           (cons(1, constant_options) / _ds(tensor.items[0])) * grad
         when :tanh
-          (cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)) * grad
+          (cons(1, constant_options) - (op(:tanh, _ds(tensor.items[0]))**2)) * grad
         when :tan
-          (cons(1, constant_options) / (op(:cos, tensor.items[0])**2)) * grad
+          (cons(1, constant_options) / (op(:cos, _ds(tensor.items[0]))**2)) * grad
         when :sin
           op(:cos, tensor.items[0]) * grad
         when :sqrt
-          cons(1, constant_options) / (cons(2, constant_options) * op(:sqrt, tensor.items[0])) * grad
+          cons(1, constant_options) / (cons(2, constant_options) * op(:sqrt, _ds(tensor.items[0]))) * grad
         when :cos
           -op(:sin, tensor.items[0]) * grad
         when :add
@@ -43,13 +47,16 @@ module TensorStream
         when :pow
           gx = _ds(tensor.items[1])*( _ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
-          log_x = op(:where, op(:log, tensor.items[0]), op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
+          log_x = op(:where, op(:log, tensor.items[0], nil, name: 'log_pow_grad'), op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
           gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * grad2
 
           gx + gy
         when :div
           # apply the quotient rule
-          (grad * _ds(tensor.items[1]) - _ds(tensor.items[0]) * grad2 ) / tensor.items[1]**2
+          gx = op(:div, grad, _ds(tensor.items[1]))
+          gy = grad2 * op(:div, op(:div, -_ds(tensor.items[0]), _ds(tensor.items[1])), _ds(tensor.items[1]))
+
+          gx + gy
         when :mul
           # apply the product rule
           grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2

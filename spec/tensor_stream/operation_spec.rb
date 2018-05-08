@@ -535,6 +535,41 @@ end
       expect(result.eval).to eq(8.0)
       expect(result2.eval).to eq(9.0)
     end
+
+    it "supports gradients" do
+      x = tf.constant(2.0)
+      y = tf.constant(3.0)
+      z = tf.multiply(x, y)
+
+      result = tf.cond(x < y, tf.add(x, z), tf.square(y))
+      result2 = tf.cond(x > y, tf.add(x, z), tf.square(y))
+
+      grad1 = tf.gradients(result, [x, y])
+      grad2 = tf.gradients(result2, [x, y])
+
+      expect(grad1.eval).to eq([4.0, 2.0])
+      expect(grad2.eval).to eq([0.0, 6.0])
+    end
+  end
+
+  context ".where" do
+    it "does an elementwise comparison and picks the appropriate element from x or y" do
+      a = tf.constant([1,2,3,4,5])
+      b = tf.constant([6,6,6,6,6])
+      c = tf.constant([8,8,8,8,8])
+      
+      expect(tf.where(a > 3, b, c).eval).to eq([8, 8, 8, 6, 6])
+    end
+
+    it "supports gradients" do
+      a = tf.constant([1,2,3,4,5])
+      b = tf.constant([6,6,6,6,6])
+      c = tf.constant([8,8,8,8,8])
+
+      expr = tf.where(a > 3, b, c)
+      g = tf.gradients(expr, [b, c])
+      expect(g.eval).to eq([[0, 0, 0, 1, 1], [1, 1, 1, 0, 0]])
+    end
   end
 
   context ".mul" do

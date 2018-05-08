@@ -1,7 +1,7 @@
 module TensorStream
   class Session
-    def initialize(evaluator = TensorStream::RubyEvaluator)
-      @evaluator_class = evaluator
+    def initialize(evaluator = :ruby_evaluator)
+      @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
     end
 
     def self.default_session
@@ -26,12 +26,24 @@ module TensorStream
           context[k.name.to_sym] = options[:feed_dict][k]
         end
       end if options[:feed_dict]
+      
       evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]), TensorStream::Graph.get_default_graph)
 
       execution_context = {}
-      result = args.collect { |e| evaluator.complete_eval(e, execution_context) }
+      result = args.collect { |e| evaluator.run(e, execution_context) }
       @last_session_context = context
       result.size == 1 ? result.first : result
+    end
+
+    private
+
+    def camelize(string, uppercase_first_letter = true)
+      if uppercase_first_letter
+        string = string.sub(/^[a-z\d]*/) { $&.capitalize }
+      else
+        string = string.sub(/^(?:(?=\b|[A-Z_])|\w)/) { $&.downcase }
+      end
+      string.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }.gsub('/', '::')
     end
   end
 end

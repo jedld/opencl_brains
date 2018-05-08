@@ -14,12 +14,14 @@ require 'tensor_stream/placeholder'
 require 'tensor_stream/control_flow'
 require 'tensor_stream/trainer'
 require 'tensor_stream/nn/nn_ops'
-require 'tensor_stream/evaluator/ruby_evaluator'
+require 'tensor_stream/evaluator/evaluator'
 # require 'tensor_stream/libraries/layers'
 require "tensor_stream/monkey_patches/integer"
+require 'tensor_stream/ops'
 
 module TensorStream
   extend TensorStream::OpHelper
+  extend TensorStream::Ops
 
   def self.float32
     Types.float32
@@ -77,33 +79,6 @@ module TensorStream
     TensorStream::Layers
   end
 
-  def self.gradients(ys, xs, grad_ys: nil,
-    name: 'gradients',
-    colocate_gradients_with_ops: false,
-    gate_gradients: false,
-    aggregation_method: nil,
-    stop_gradients: nil
-    )
-    options = { stop_gradients: stop_gradients}
-    op(:gradients, ys, xs, options)
-  end
-
-  def self.stop_gradient(tensor, options = {})
-    TensorStream::Operation.new(:stop_gradient, tensor, nil, options)
-  end
-
-  def self.eye(num_rows, num_columns: nil, dtype: :float32, name: nil)
-    TensorStream::Operation.new(:eye, num_rows, num_columns || num_rows, data_type: dtype, name: name, preserve_params_type: true)
-  end
-
-  def self.shape(input, name: nil, out_type: :int32)
-    TensorStream::Operation.new(:shape, input, nil, name: name)
-  end
-
-  def self.rank(input, name: nil)
-    op(:rank, input, name: name)
-  end
-
   def self.constant(value, options = {})
     shared_options = { const: true, value: value, name: options[:name] }
     if value.is_a?(Float)
@@ -142,169 +117,8 @@ module TensorStream
     TensorStream::Placeholder.new(dtype, nil, options[:shape])
   end
 
-  def self.random_uniform(shape , dtype: :float32, minval: 0, maxval: 1, seed: nil, name: nil)
-    options = {shape: shape, dtype: dtype, minval: minval, maxval: maxval, seed: seed, name: name}
-    TensorStream::Operation.new(:random_uniform, nil, nil, options)
-  end
-
-  def self.random_normal(shape, dtype: :float32, mean: 0.0, stddev: 1.0, seed: nil, name: nil)
-    options = {shape: shape, dtype: dtype, mean: mean, stddev: stddev, seed: seed, name: name}
-    TensorStream::Operation.new(:random_normal, nil, nil, options)
-  end
-
   def self.global_variables_initializer
     TensorStream::Variable.global_variables_initializer
-  end
-
-  def self.zeros_initializer(options = {})
-    TensorStream::Operation.new(:zeros, nil, nil, options)
-  end
-
-  def self.slice(input, start, size, name: nil)
-    op(:slice, input, start, size: size, name: name)
-  end
-
-  def self.zeros(shape, dtype: :float32, name: nil)
-    op(:zeros, shape, nil, data_type: dtype, name: name)
-  end
-
-  def self.ones(shape, dtype: :float32, name: nil)
-    op(:ones, shape, nil, data_type: dtype, name: name)
-  end
-
-  def self.less(a, b, name: nil)
-    op(:less, a, b, name: name)
-  end
-
-  def self.greater(a, b, name: nil)
-    op(:greater, a, b, name: name)
-  end
-
-  def self.reduce_sum(input_tensor, axis = nil, keepdims: false, name: nil)
-    TensorStream::Operation.new(:reduce_sum, input_tensor, nil, axis: axis, keepdims: keepdims, name: name)
-  end
-
-  def self.reduce_prod(input, axis = nil, keepdims: false, name: nil)
-    op(:reduce_prod, input, nil, axis: axis, keepdims: keepdims, name: name)
-  end
-
-  def self.concat(values, axis, name: 'concat')
-    TensorStream::Operation.new(:concat, values, nil, axis: axis, name: name)
-  end
-
-  def self.reshape(tensor, shape, name: nil)
-    TensorStream::Operation.new(:reshape, tensor, shape, name: name)
-  end
-
-  def self.square(tensor, name: nil)
-    op(:square, tensor, nil, name: name)
-  end
-
-  def self.cond(pred, true_fn, false_fn, name: nil)
-    op(:cond, true_fn, false_fn, pred: pred, name: name)
-  end
-
-  def self.add(a, b, name: nil)
-    op(:add, a, b, name: name)
-  end
-
-  def self.sub(a, b, name: nil)
-    op(:sub, a, b, name: name)
-  end
-
-  def self.print(input, data, message: nil, name: nil)
-    op(:print, input, data, message: message, name: name)
-  end
-
-  def self.negate(a, options = {})
-    TensorStream::Operation.new(:negate, a, nil, options)
-  end
-
-  def self.equal(a, b, options = {})
-    TensorStream::Operation.new(:equal, a, b, options)
-  end
-
-  def self.zeros_like(tensor, dtype: nil, name: nil)
-    op(:zeros_like, tensor, nil, data_type: dtype, name: name)
-  end
-
-  def self.identity(input, name: name)
-    op(:identity, input, nil, name: name)
-  end
-
-  def self.multiply(a, b)
-    a * b
-  end
-
-  def self.pow(a, e)
-    a**e
-  end
-
-  def self.abs(x, name: nil)
-    TensorStream::Operation.new(:abs, x, nil, name: name)
-  end
-
-  def self.sign(x, name: nil)
-    TensorStream::Operation.new(:sign, x, nil, name: name)
-  end
-
-  def self.sin(a, options = {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:sin, a, nil, options)
-  end
-
-  def self.cos(a, options = {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:cos, a, nil, options)
-  end
-
-  def self.tan(a, options = {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:tan, a, nil, options)
-  end
-
-  def self.tanh(a, options = {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:tanh, a, nil, options)
-  end
-
-  def self.sqrt(a, name: nil)
-    options = {
-      data_type: a.data_type,
-      name: name
-    }
-    check_allowed_types(a, %w(float32 float64))
-    op(:sqrt, a, nil, options)
-  end
-
-  def self.log(a, options= {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:log, a, nil, options)
-  end
-
-  def self.exp(a, options = {})
-    options[:data_type] ||= :float32
-    check_allowed_types(a, %w(float32 float64))
-    TensorStream::Operation.new(:exp, a, nil, options)
-  end
-
-  def self.matmul(a, b, transpose_a: false,
-    transpose_b: false,
-    name: nil)
-    TensorStream::Operation.new(:matmul, a, b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
-  end
-
-  def self.transpose(tensor, perm: nil, name: 'transpose')
-    TensorStream::Operation.new(:transpose, tensor, nil, perm: perm, name: name)
-  end
-
-  def self.pad(tensor, paddings, mode: 'CONSTANT', name: nil)
-    op(:pad, tensor, nil, paddings: paddings, mode: mode, name: name)
   end
 
   def self.train
@@ -314,33 +128,9 @@ module TensorStream
   private
 
   def self.check_allowed_types(t, types)
-    return t unless t.kind_of?(Tensor)
+    return t unless t.is_a?(Tensor)
     return t if t.data_type.nil?
 
     fail "Parameter data type #{t.data_type} passed not in #{types.join(',')}" if !types.map(&:to_sym).include?(t.data_type)
-  end
-
-  def self.dtype_eval(dtype, rank, value)
-    dtype = Tensor.detect_type(value[0])
-    rank+=1 if dtype == :array
-
-    [dtype, rank, value[0], value.size]
-  end
-
-
-  def self.val_to_dtype(value, rank = 0)
-    dtype = if value.is_a?(String)
-      :string
-    elsif value.is_a?(Float)
-      :float32
-    elsif value.is_a?(Integer)
-      :int32
-    elsif value.is_a?(Array)
-      rank += 1
-      :array
-    else
-      :float32
-    end
-    dtype
   end
 end

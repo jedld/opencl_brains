@@ -144,6 +144,8 @@ module TensorStream
         "sqrt(#{sub_item})"
       when :zeros_like
         "zeros_like(#{sub_item})"
+      when :where
+        "where(#{auto_math(options[:pred])},#{auto_math(items[0])},#{auto_math(items[1])})"
       else
         fail "math form for #{operation}"
       end

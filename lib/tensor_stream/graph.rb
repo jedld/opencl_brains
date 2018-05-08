@@ -35,6 +35,7 @@ module TensorStream
     end
 
     def add_node(node)
+      fail "Placeholder cannot be used when eager_execution is enabled" if @eager_execution && node.is_a?(Placeholder)
       if @nodes[node.name]
         node.name = uniqunify(node.name)
       end
