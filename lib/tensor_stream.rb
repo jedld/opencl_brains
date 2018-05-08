@@ -85,7 +85,7 @@ module TensorStream
     stop_gradients: nil
     )
     options = { stop_gradients: stop_gradients}
-    TensorStream::Operation.new(:gradients, ys, xs, options)
+    op(:gradients, ys, xs, options)
   end
 
   def self.stop_gradient(tensor, options = {})

@@ -23,10 +23,10 @@ module TensorStream
       # scan for placeholders and assign value
       options[:feed_dict].keys.each do |k|
         if k.is_a?(Placeholder)
-          context[k.name.to_sym] = options[:feed_dict][k].kind_of?(Tensor) ? options[:feed_dict][k] : TensorStream.constant(options[:feed_dict][k], dtype: k.data_type)
+          context[k.name.to_sym] = options[:feed_dict][k]
         end
       end if options[:feed_dict]
-      evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]))
+      evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]), TensorStream::Graph.get_default_graph)
 
       execution_context = {}
       result = args.collect { |e| evaluator.complete_eval(e, execution_context) }

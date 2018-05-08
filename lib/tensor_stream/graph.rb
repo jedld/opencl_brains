@@ -41,15 +41,29 @@ module TensorStream
 
       @nodes[node.name] = node
       if @eager_execution
-        node.value= node.eval
+        node.value = node.eval
       end
+    end
+
+    def node_added?(name)
+      @nodes.key?(name)
+    end
+
+    def get_node(name)
+      @nodes[name]
+    end
+
+    def add_node!(name, node)
+      @nodes[name] = node
+      node
     end
 
     def add_variable(node, options = {})
       fail "duplicate variable detected #{node.name} and reuse=false in current scope" if @nodes[node.name] && !options[:reuse]
 
       add_to_collection(GraphKeys::GLOBAL_VARIABLES, node)
-      @nodes[node.name] = node
+
+      add_node(node)
     end
 
     def control_dependencies(dependencies = [], &block)

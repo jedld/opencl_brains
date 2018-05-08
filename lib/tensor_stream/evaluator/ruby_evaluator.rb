@@ -23,9 +23,10 @@ module TensorStream
 
     include TensorStream::OpHelper
 
-    def initialize(session, context)
+    def initialize(session, context, graph)
       @session = session
       @context = context
+      @graph = graph
       @retain = context[:retain] || []
     end
 
@@ -124,8 +125,7 @@ module TensorStream
         call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
       when :concat
         values = complete_eval(a, child_context)
-        res = concat_array(values, tensor.options[:axis])
-        cons(res)
+        concat_array(values, tensor.options[:axis])
       when :abs
         call_op(:abs, a, child_context, ->(t, _b) { t.abs })
       when :tanh
@@ -139,7 +139,7 @@ module TensorStream
       when :cos
         call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
       when :log
-        call_op(:log, a, child_context, ->(t, _b) { Math.log(t) } )
+        call_op(:log, a, child_context, ->(t, _b) { Math.log(t) })
       when :exp
         call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
       when :sqrt
@@ -152,13 +152,13 @@ module TensorStream
         maxval = tensor.options.fetch(:maxval, 1)
         minval = tensor.options.fetch(:minval, 0)
 
-        generator = ->() { rand * (maxval - minval) + minval }
-        cons(generate_vector(tensor.options[:shape], generator: generator ))
+        generator = -> { rand * (maxval - minval) + minval }
+        generate_vector(tensor.options[:shape], generator: generator)
       when :random_normal
         r = RandomGaussian.new(tensor.options.fetch(:mean), tensor.options.fetch(:stddev))
-        generator = ->() { r.rand }
+        generator = -> { r.rand }
 
-        cons(generate_vector(tensor.options[:shape], generator: generator ))
+        generate_vector(tensor.options[:shape], generator: generator)
       when :flow_group
         tensor.items.each { |item| run(item, child_context) }
         nil
@@ -196,7 +196,7 @@ module TensorStream
         reduction(child_context, tensor, func)
       when :transpose
         matrix_a = complete_eval(a, child_context)
-        cons(matrix_a.transpose)
+        matrix_a.transpose
       when :eye
         rows = complete_eval(a, child_context)
         columns = complete_eval(b, child_context)
@@ -244,15 +244,15 @@ module TensorStream
                end
 
         if shape.is_a?(Array) && shape.size == 0
-          cons(func.call())
+          func.call()
         else
           shape = [shape.to_i] unless shape.is_a?(Array)
-          cons(generate_vector(shape, generator: func))
+          generate_vector(shape, generator: func)
         end
       when :shape
         input = complete_eval(a, child_context)
 
-        cons(shape_eval(input))
+        shape_eval(input)
       when :matmul
         matrix_a = complete_eval(a, child_context)
         matrix_b = complete_eval(b, child_context)
@@ -273,36 +273,35 @@ module TensorStream
         # check matrix dimensions
         fail "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
-        cons((Matrix[*matrix_a] * Matrix[*matrix_b]).to_a)
+        (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
       when :gradients
         b.collect do |xs|
           fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
           xs_val = complete_eval(xs, child_context)
           target_shape = shape_eval(xs_val)
 
-          gradient_program_name = "grad_#{tensor.name}_#{xs.name}".to_sym
+          stops = tensor.options[:stop_gradients] ? tensor.options[:stop_gradients].map(&:name).join('_') : ''
+          gradient_program_name = "grad_#{tensor.name}_#{xs.name}_#{stops}".to_sym
 
-          tensor_program = if @context.key?(gradient_program_name)
-            @context[gradient_program_name]
+          tensor_program = if @graph.node_added?(gradient_program_name)
+            @graph.get_node(gradient_program_name)
           else
-            @context[gradient_program_name] = TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
+            unit_matrix = cons(generate_vector(target_shape, generator: -> { xs.data_type == :int32 ? 1 : 1.0 } ))
+            @graph.add_node!(gradient_program_name, unit_matrix * TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape))
           end
 
-          derivative = complete_eval(tensor_program, child_context)
-
-          unit_matrix = cons(generate_vector(target_shape, generator: -> { xs.data_type == :int32 ? 1 : 1.0 } ))
-          complete_eval(unit_matrix * cons(derivative), child_context)
+          complete_eval(tensor_program, child_context)
         end
       when :identity
-        cons(complete_eval(a, child_context))
+        complete_eval(a, child_context)
       when :print
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
         puts "#{tensor.options.fetch(:message, '')} #{b}"
-        cons(a)
+        a
       when :rank
         a = complete_eval(a, child_context)
-        cons(get_rank(a), data_type: :int32)
+        get_rank(a)
       when :div
         process_vector_math_op(a, b, child_context, ->(a,b) { a/b })
       when :reshape
@@ -314,7 +313,7 @@ module TensorStream
 
         new_shape = fix_inferred_elements(new_shape, flat_arr.size)
 
-        cons(reshape(flat_arr, new_shape), dtype: a.data_type)
+        reshape(flat_arr, new_shape)
       when :pad
         a = complete_eval(a, child_context)
         p = complete_eval(tensor.options[:paddings], child_context)
@@ -372,7 +371,7 @@ module TensorStream
             else
               reduce_axis(axis, val, keep_dims, child_context, func)
             end
-      cons(res)
+      res
     end
     def arr_pad(arr, paddings, data_type = :float32, rank = 0)
       fail "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
@@ -517,7 +516,7 @@ module TensorStream
         v = run(a, child_context)
         fail FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const
 
-        TensorStream.constant(op.call(v, 0), dtype: TensorStream.val_to_dtype(v))
+        op.call(v, 0)
       else
         fail 'cannot be here'
       end
