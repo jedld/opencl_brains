@@ -16,42 +16,24 @@ module TensorStream
         when :identity, :print, :pad
           grad
         when :negate
-          return cons(0, constant_options) if grad.value == 0
-
           cons(-1, constant_options) * grad
         when :abs
-          return cons(0, constant_options) if grad.value == 0
-
           grad * op(:sign, tensor.items[0])
         when :square
-          return cons(0, constant_options) if grad.value == 0
-
           cons(2, constant_options) * tensor.items[0] * grad
         when :exp
-          return cons(0, constant_options) if grad.value == 0
-
           op(:exp, tensor.items[0]) * grad
         when :log
-          return cons(0, constant_options) if grad.value == 0
-
           (cons(1, constant_options) / _ds(tensor.items[0])) * grad
         when :tanh
-          return cons(0, constant_options) if grad.value == 0
-
           (cons(1, constant_options) - (op(:tanh, tensor.items[0])**2)) * grad
         when :tan
-          return cons(0, constant_options) if grad.value == 0
-
           (cons(1, constant_options) / (op(:cos, tensor.items[0])**2)) * grad
         when :sin
-          return cons(0, constant_options) if grad.value == 0
-
           op(:cos, tensor.items[0]) * grad
         when :sqrt
           cons(1, constant_options) / ( cons(2, constant_options) * op(:sqrt,  tensor.items[0])) * grad
         when :cos
-          return cons(0, constant_options) if grad.value == 0
-
           -op(:sin, tensor.items[0]) * grad
         when :add
           grad_with_broadcast(tensor, dx, ->(a,b) { op(:add, a, b, name: 'grad_sum') } , options)
