@@ -10,7 +10,8 @@ module TensorStream
       return cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
-        grad = derivative(tensor.items[0], dx, options)
+        grad = derivative(tensor.items[0], dx, options) if tensor.items[0]
+        grad2 = derivative(tensor.items[1], dx, options) if tensor.items[1]
 
         case tensor.operation
         when :identity, :print, :pad
@@ -32,7 +33,7 @@ module TensorStream
         when :sin
           op(:cos, tensor.items[0]) * grad
         when :sqrt
-          cons(1, constant_options) / ( cons(2, constant_options) * op(:sqrt,  tensor.items[0])) * grad
+          cons(1, constant_options) / (cons(2, constant_options) * op(:sqrt, tensor.items[0])) * grad
         when :cos
           -op(:sin, tensor.items[0]) * grad
         when :add
@@ -40,18 +41,18 @@ module TensorStream
         when :sub
           grad_with_broadcast(tensor, dx, ->(a,b) { op(:sub, a, b, name: 'grad_sub') } , options)
         when :pow
-          gx = _ds(tensor.items[1])*( _ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * derivative(tensor.items[0], dx, options)
+          gx = _ds(tensor.items[1])*( _ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
           log_x = op(:where, op(:log, tensor.items[0]), op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
-          gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * derivative(tensor.items[1], dx, options)
+          gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * grad2
 
           gx + gy
         when :div
           # apply the quotient rule
-          (grad * _ds(tensor.items[1]) - _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options) ) / tensor.items[1]**2
+          (grad * _ds(tensor.items[1]) - _ds(tensor.items[0]) * grad2 ) / tensor.items[1]**2
         when :mul
           # apply the product rule
-          grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * derivative(tensor.items[1], dx, options)
+          grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2
         when :reduce_sum
           grad
         when :stop_gradient
