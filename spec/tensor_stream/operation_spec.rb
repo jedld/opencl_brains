@@ -166,6 +166,24 @@ RSpec.describe TensorStream::Operation do
       expect(a.eval).to eq([[0.0, 0.0], [0.0, 0.0]])
     end
   end
+    
+  context ".zeros_like" do
+    it "generates a zero tensor based on another tensor" do
+      a = tf.zeros_like([2,2,2,2,2])
+      b = tf.zeros_like([[2,2],[3,3]])
+      expect(a.eval).to eq([0, 0, 0, 0, 0])
+      expect(b.eval).to eq([[0, 0], [0, 0]])
+    end
+  end
+
+  context ".ones_like" do
+    it "generates a zero tensor based on another tensor" do
+      a = tf.ones_like([2,2,2,2,2])
+      b = tf.ones_like([[2,2],[3,3]])
+      expect(a.eval).to eq([1, 1, 1, 1, 1])
+      expect(b.eval).to eq([[1, 1], [1, 1]])
+    end
+  end
 
   context ".ones" do
     it "generates a ones tensor" do

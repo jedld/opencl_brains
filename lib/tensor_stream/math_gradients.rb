@@ -15,7 +15,9 @@ module TensorStream
 
         case tensor.operation
         when :where
-          op(:where, grad, grad2, pred: tensor.options[:pred])
+          x_mask = op(:where, op(:ones_like, tensor.items[0]), op(:zeros_like, tensor.items[1]), pred: tensor.options[:pred])
+          y_mask = op(:where, op(:zeros_like, tensor.items[0]), op(:ones_like, tensor.items[1]), pred: tensor.options[:pred])
+          x_mask * grad + y_mask * grad2
         when :cond
           op(:cond, grad, grad2, pred: tensor.options[:pred])
         when :identity, :print, :pad

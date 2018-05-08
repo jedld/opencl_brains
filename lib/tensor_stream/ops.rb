@@ -72,11 +72,11 @@ module TensorStream
     end
   
     def concat(values, axis, name: 'concat')
-      TensorStream::Operation.new(:concat, values, nil, axis: axis, name: name)
+      op(:concat, values, nil, axis: axis, name: name)
     end
   
     def reshape(tensor, shape, name: nil)
-      TensorStream::Operation.new(:reshape, tensor, shape, name: name)
+      op(:reshape, tensor, shape, name: name)
     end
   
     def square(tensor, name: nil)
@@ -113,6 +113,10 @@ module TensorStream
   
     def zeros_like(tensor, dtype: nil, name: nil)
       op(:zeros_like, tensor, nil, data_type: dtype, name: name)
+    end
+
+    def ones_like(tensor, dtype: nil, name: nil)
+      op(:ones_like, tensor, nil, data_type: dtype, name: name)
     end
   
     def identity(input, name: nil)
