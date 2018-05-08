@@ -331,8 +331,12 @@ module TensorStream
     rescue EvaluatorExcecutionException => e
       raise e
     rescue StandardError => e
+      a = complete_eval(a, child_context)
+      b = complete_eval(b, child_context)
+
+      puts "A: #{a}" if a
+      puts "B: #{b}" if b
       # binding.pry
-      puts e.message
       puts e.backtrace.join("\n")
       raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"
     end
@@ -584,6 +588,13 @@ module TensorStream
       v_a = run(vector, child_context)
       v_b = run(vector2, child_context)
 
+      if get_rank(v_a) < get_rank(v_b) # upgrade rank of A
+        duplicated = v_b.size.times.collect do
+          v_a
+        end
+        return vector_op(duplicated, v_b, child_context, op)
+      end
+
       v_a.each_with_index.collect do |item, index|
         next vector_op(item, v_b, child_context, op) if item.is_a?(Array) && get_rank(v_a) > get_rank(v_b)
 
@@ -592,11 +603,7 @@ module TensorStream
         if item.is_a?(Array)
           constant_op(item, z, child_context, op)
         else
-          if item.respond_to?(:value)
-            op.(item.value, z.value)
-          else
-            op.(item, z)
-          end
+          item.respond_to?(:value) ? op.call(item.value, z.value) : op.call(item, z)
         end
       end
     end

@@ -571,6 +571,15 @@ end
       c = a * b
       expect(c.eval).to eq([[4.0, 4.0], [4.0, 4.0]])
     end
+
+    it "different rank multiplication" do
+      a = tf.constant([7.0, 7.0, 7.0, 7.0, 7.0])
+      b = tf.constant([
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1]])
+      c = a * b
+      expect(c.eval).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
+    end
   end
 
   context ".less" do
