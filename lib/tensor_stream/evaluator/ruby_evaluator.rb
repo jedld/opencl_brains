@@ -122,7 +122,7 @@ module TensorStream
         when :sub
           call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
         when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil?; t * u })
+          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat
@@ -460,13 +460,13 @@ module TensorStream
       def call_op(op, a, child_context, func)
         a = complete_eval(a, child_context)
         process_function_op(a, child_context, func)
-      rescue TensorStream::FullEvalNotPossible
+      rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a)
       end
 
       def call_vector_op(op, a, b, child_context, func)
         process_vector_math_op(a, b,  child_context, func)
-      rescue TensorStream::FullEvalNotPossible
+      rescue FullEvalNotPossible
         TensorStream.send(op.to_sym, a, b)
       end
 
