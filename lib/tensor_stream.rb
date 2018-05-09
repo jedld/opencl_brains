@@ -64,8 +64,8 @@ module TensorStream
     end
   end
 
-  def self.Session
-    session = TensorStream::Session.new
+  def self.Session(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
+    session = TensorStream::Session.new(evaluator, thread_pool_class: thread_pool_class)
     if block_given?
       yield session
     end

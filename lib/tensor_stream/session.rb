@@ -1,7 +1,8 @@
 module TensorStream
   class Session
-    def initialize(evaluator = :ruby_evaluator)
+    def initialize(evaluator = :ruby_evaluator, thread_pool_class: Concurrent::ImmediateExecutor)
       @evaluator_class = Object.const_get("TensorStream::Evaluator::#{camelize(evaluator.to_s)}")
+      @thread_pool = thread_pool_class.new
     end
 
     def self.default_session
@@ -27,7 +28,7 @@ module TensorStream
         end
       end if options[:feed_dict]
       
-      evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]), TensorStream::Graph.get_default_graph)
+      evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]), TensorStream::Graph.get_default_graph, thread_pool: @thread_pool)
 
       execution_context = {}
       result = args.collect { |e| evaluator.run(e, execution_context) }
