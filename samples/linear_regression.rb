@@ -5,7 +5,7 @@ require 'benchmark'
 tf = TensorStream
 
 learning_rate = 0.01
-training_epochs = 1000
+training_epochs = 500
 display_step = 50
 
 train_X = [3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
@@ -32,8 +32,9 @@ optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).min
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
-Benchmark.measure do
-  tf.Session do |sess|
+
+tf.Session do |sess|
+    start_time = Time.now
     sess.run(init)
     (0..training_epochs).each do |epoch|
       train_X.zip(train_Y).each do |x,y|
@@ -49,6 +50,6 @@ Benchmark.measure do
 
     puts("Optimization Finished!")
     training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
-    puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')  
-  end
+    puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')
+    puts("time elapsed ", Time.now.to_i - start_time.to_i)
 end

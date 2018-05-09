@@ -29,7 +29,7 @@ module TensorStream
         @context = context
         @graph = graph
         @retain = context[:retain] || []
-        @thread_pool = Concurrent::FixedThreadPool.new(5)
+        @thread_pool = Concurrent::FixedThreadPool.new(4) # Concurrent::ImmediateExecutor.new # 
       end
 
       def run(tensor, execution_context)
@@ -162,8 +162,8 @@ module TensorStream
 
           generate_vector(tensor.options[:shape], generator: generator)
         when :flow_group
-          tensor.items.each { |item| run(item, child_context) }
-          nil
+          threads = tensor.items.collect { |item| Concurrent::Future.execute(executor: @thread_pool) { run(item, child_context) } }
+          threads.collect { |t| t.value }
         when :assign
           assign = tensor.items[0] || tensor
           assign.value = complete_eval(tensor.items[1], child_context)
@@ -299,8 +299,10 @@ module TensorStream
               @graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
             end
 
-            complete_eval(tensor_program, child_context)
+            Concurrent::Future.execute(executor: @thread_pool) { complete_eval(tensor_program, child_context) }
           end
+
+          compute_threads.collect { |t| t.value }
         when :identity
           complete_eval(a, child_context)
         when :print
