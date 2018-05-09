@@ -24,12 +24,12 @@ module TensorStream
 
       include TensorStream::OpHelper
 
-      def initialize(session, context, graph)
+      def initialize(session, context, graph, thread_pool: Concurrent::ImmediateExecutor)
         @session = session
         @context = context
         @graph = graph
         @retain = context[:retain] || []
-        @thread_pool = Concurrent::FixedThreadPool.new(4) # Concurrent::ImmediateExecutor.new # 
+        @thread_pool = thread_pool.new
       end
 
       def run(tensor, execution_context)
