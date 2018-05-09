@@ -348,7 +348,7 @@ module TensorStream
         puts "B: #{b}" if b
         # binding.pry
         puts e.backtrace.join("\n")
-        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math}"
+        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.backtrace}"
       end
 
       def eval_tensor(tensor, child_context)

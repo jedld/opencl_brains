@@ -28,7 +28,7 @@ module TensorStream
         end
       end if options[:feed_dict]
       
-      evaluator = @evaluator_class.new(self, context.merge(retain: options[:retain]), TensorStream::Graph.get_default_graph, thread_pool: @thread_pool)
+      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), TensorStream::Graph.get_default_graph, thread_pool: @thread_pool)
 
       execution_context = {}
       result = args.collect { |e| evaluator.run(e, execution_context) }

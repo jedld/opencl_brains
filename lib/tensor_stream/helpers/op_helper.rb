@@ -4,8 +4,17 @@ module TensorStream
       Operation.new(code.to_sym, a, b, options)
     end
 
+    # same as op but with a marker that it was internal generated
+    def i_op(code, a, b = nil, options = {})
+      Operation.new(code.to_sym, a, b, options.merge(internal: true))
+    end
+
     def cons(value, options = {})
       TensorStream.constant(value, options)
+    end
+
+    def i_cons(value, options = {})
+      TensorStream.constant(value, options.merge(internal: true))
     end
 
     def shape_eval(input)

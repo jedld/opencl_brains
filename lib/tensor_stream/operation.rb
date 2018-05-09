@@ -1,11 +1,15 @@
 module TensorStream
   class Operation < Tensor
-    attr_accessor :name, :operation, :items, :rank, :options
+    attr_accessor :name, :given_name, :operation, :items, :rank, :options, :backtrace
 
     def initialize(operation, a, b, options = {})
       @operation = operation
       @rank = options[:rank] || 0
       @name = options[:name] || set_name
+      @internal = options[:internal]
+      @given_name = @name
+      @backtrace = set_backtrace(caller_locations)
+
       @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
 
@@ -18,7 +22,6 @@ module TensorStream
       end
       @graph.add_node(self)
     end
-
     def to_s
       @name
     end
