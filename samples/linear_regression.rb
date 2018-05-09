@@ -1,5 +1,8 @@
 require "bundler/setup"
 require 'tensor_stream'
+require 'benchmark'
+
+tf = TensorStream
 
 learning_rate = 0.01
 training_epochs = 1000
@@ -12,39 +15,40 @@ train_Y = [1.7,2.76,2.09,3.19,1.694,1.573,3.366,2.596,2.53,1.221,
 
 n_samples = train_X.size
 
-X = TensorStream.placeholder("float")
-Y = TensorStream.placeholder("float")
+X = tf.placeholder("float")
+Y = tf.placeholder("float")
 
 # Set model weights
-W = TensorStream.Variable(rand, name: "weight")
-b = TensorStream.Variable(rand, name: "bias")
+W = tf.Variable(rand, name: "weight")
+b = tf.Variable(rand, name: "bias")
 
 # Construct a linear model
 pred = X * W + b
 
 # Mean squared error
-cost = TensorStream.reduce_sum(TensorStream.pow(pred - Y, 2)) / ( 2 * n_samples)
+cost = tf.reduce_sum(tf.pow(pred - Y, 2)) / ( 2 * n_samples)
 
 optimizer = TensorStream::Train::GradientDescentOptimizer.new(learning_rate).minimize(cost)
 
 # Initialize the variables (i.e. assign their default value)
-init = TensorStream.global_variables_initializer()
+init = tf.global_variables_initializer()
+Benchmark.measure do
+  tf.Session do |sess|
+    sess.run(init)
+    (0..training_epochs).each do |epoch|
+      train_X.zip(train_Y).each do |x,y|
+        sess.run(optimizer, feed_dict: {X => x, Y => y})
+      end
 
-TensorStream.Session do |sess|
-  sess.run(init)
-  (0..training_epochs).each do |epoch|
-    train_X.zip(train_Y).each do |x,y|
-      sess.run(optimizer, feed_dict: {X => x, Y => y})
+      if (epoch+1) % display_step == 0
+        c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
+        puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
+            "W=", sess.run(W), "b=", sess.run(b))
+      end
     end
 
-    if (epoch+1) % display_step == 0
-      c = sess.run(cost, feed_dict: {X => train_X, Y => train_Y})
-      puts("Epoch:", '%04d' % (epoch+1), "cost=",  c, \
-          "W=", sess.run(W), "b=", sess.run(b))
-    end
+    puts("Optimization Finished!")
+    training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
+    puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')  
   end
-
-  puts("Optimization Finished!")
-  training_cost = sess.run(cost, feed_dict: { X => train_X, Y => train_Y})
-  puts("Training cost=", training_cost, "W=", sess.run(W), "b=", sess.run(b), '\n')  
 end

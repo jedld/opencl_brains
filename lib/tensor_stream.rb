@@ -1,6 +1,7 @@
 require "tensor_stream/version"
 require 'deep_merge'
 require 'matrix'
+require 'concurrent'
 require 'tensor_stream/helpers/op_helper'
 require 'tensor_stream/graph_keys'
 require 'tensor_stream/types'

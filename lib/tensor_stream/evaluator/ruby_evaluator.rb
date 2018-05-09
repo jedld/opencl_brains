@@ -29,6 +29,7 @@ module TensorStream
         @context = context
         @graph = graph
         @retain = context[:retain] || []
+        @thread_pool = Concurrent::FixedThreadPool.new(5)
       end
 
       def run(tensor, execution_context)
@@ -282,7 +283,7 @@ module TensorStream
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         when :gradients
-          b.collect do |xs|
+          compute_threads = b.collect do |xs|
             fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
             xs_val = complete_eval(xs, child_context)
             target_shape = shape_eval(xs_val)
@@ -293,8 +294,9 @@ module TensorStream
             tensor_program = if @graph.node_added?(gradient_program_name)
               @graph.get_node(gradient_program_name)
             else
-              unit_matrix = cons(generate_vector(target_shape, generator: -> { xs.data_type == :int32 ? 1 : 1.0 } ))
-              @graph.add_node!(gradient_program_name, unit_matrix * TensorStream::MathGradients.derivative(a, xs, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape))
+              derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: @graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
+              unit_matrix = op(:ones_like, xs)
+              @graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
             end
 
             complete_eval(tensor_program, child_context)

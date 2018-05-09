@@ -4,6 +4,9 @@ module TensorStream
     extend TensorStream::OpHelper
 
     def self.derivative(tensor, dx, options = {})
+      gradient_program_name = "_grad_#{tensor.name}_#{dx.name}"
+      return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
+
       constant_options = { dtype: options[:dtype] || tensor.data_type}
       target_shape = options[:target_shape]
       return cons(1, constant_options) if tensor.equal?(dx)
@@ -112,6 +115,10 @@ module TensorStream
         cons(0, constant_options)
       else
         cons(0, constant_options)
+      end.tap do |ops|
+        if options[:graph]
+          options[:graph].add_node!(gradient_program_name, ops)
+        end
       end
     end
 
