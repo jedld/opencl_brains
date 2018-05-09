@@ -77,7 +77,7 @@ module TensorStream
       end
 
       def eval_operation(tensor, child_context)
-        return @context[tensor.name.to_sym] if @context.key?(tensor.name.to_sym)
+        return @context[tensor.name] if @context.key?(tensor.name)
 
         a = resolve_placeholder(tensor.items[0], child_context) if tensor.items && tensor.items[0]
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
@@ -336,7 +336,7 @@ module TensorStream
           if tensor.breakpoint
             tensor.breakpoint.call(complete_eval(result, child_context))
           end
-          @context[tensor.name.to_sym] = result
+          @context[tensor.name] = result
         end
       rescue EvaluatorExcecutionException => e
         raise e

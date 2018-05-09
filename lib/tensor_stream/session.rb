@@ -36,6 +36,14 @@ module TensorStream
       result.size == 1 ? result.first : result
     end
 
+    def dump_internal_ops
+      graph = TensorStream::Graph.get_default_graph
+      graph.nodes.select { |k, n| n.is_a?(Tensor) && n.internal? }.collect do |k, node|
+        next unless @last_session_context[node.name]
+        "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
+      end.compact.join("\n")
+    end
+
     private
 
     def camelize(string, uppercase_first_letter = true)

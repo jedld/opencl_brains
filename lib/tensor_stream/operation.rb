@@ -70,9 +70,9 @@ module TensorStream
 
       case operation
       when :index
-        "#{sub_item}[#{auto_math(items[1], name_only)}]"
+        "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
       when :slice
-        "#{sub_item}[#{auto_math(items[1], name_only)}]"
+        "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
       when :assign_sub
         "(#{items[0] ? items[0].name : "self"} -= #{auto_math(items[1], name_only)})"
       when :assign_add
@@ -122,7 +122,7 @@ module TensorStream
       when :zeros
         "zeros(#{sub_item})"
       when :reshape
-        "reshape(#{sub_item},#{auto_math(items[1])})"
+        "reshape(#{sub_item},#{auto_math(items[1], name_only, max_depth - 1)})"
       when :rank
         "#{sub_item}.rank"
       when :cond
@@ -148,7 +148,7 @@ module TensorStream
       when :zeros_like
         "zeros_like(#{sub_item})"
       when :where
-        "where(#{auto_math(options[:pred])},#{auto_math(items[0])},#{auto_math(items[1])})"
+        "where(#{auto_math(options[:pred] , name_only, max_depth - 1)},#{auto_math(items[0])},#{auto_math(items[1])})"
       else
         fail "math form for #{operation}"
       end
