@@ -91,15 +91,7 @@ module TensorStream
                                                      name:        'matrix_dx')
           matmul_db = i_op(:matmul, tensor.items[0], identity_1, transpose_a: true,
                                                      pad_zeros: true,
-                                                     name:        'matrix_dy')
-
-          # begin_a = op(:zeros, op(:rank, tensor.items[0]), nil, data_type: :int32, name: 'begin_a')
-          # begin_b = op(:zeros, op(:rank, tensor.items[1]), nil, data_type: :int32, name: 'begin_b')
-
-          # end_a = op(:shape, tensor.items[0])
-          # end_b = op(:shape, tensor.items[1])
-          # norm_a = op(:slice, matmul_da, begin_a, size: end_a)
-          # norm_b = op(:slice, matmul_db, begin_b, size: end_b)
+                                                     name:        'matrix_dy')       
 
           zero_vect = i_op(:zeros, target_shape, nil, name: 'zero_vect')
 
@@ -109,7 +101,9 @@ module TensorStream
           # matmul_b_shape = op(:shape, matmul_db)
           # end_a = [matmul_b_shape[0], 1]
 
+          matmul_da = op(:cond, matmul_da[0], matmul_da, pred: op(:rank, derivative_a) > 0)
 
+          # matmul_da = op(:cond, matmul_da[0], matmul_da, pred: op(:rank, derivative_a) > 0)
           norm_a = i_op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')
           norm_b = i_op(:mul, derivative_b, matmul_db, name: 'grad_b_norm_mul_db')
 
