@@ -207,8 +207,8 @@ RSpec.describe TensorStream::Operation do
 
   context ".ones_like" do
     it "generates a zero tensor based on another tensor" do
-      a = tf.ones_like([2,2,2,2,2])
-      b = tf.ones_like([[2,2],[3,3]])
+      a = tf.ones_like([2, 2, 2, 2, 2])
+      b = tf.ones_like([[2, 2],[3, 3]])
       expect(a.eval).to eq([1, 1, 1, 1, 1])
       expect(b.eval).to eq([[1, 1], [1, 1]])
     end
