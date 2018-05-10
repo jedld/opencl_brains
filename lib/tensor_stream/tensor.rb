@@ -4,7 +4,7 @@ module TensorStream
   class Tensor
     include OpHelper
 
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :backtrace, :given_name
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :source, :given_name
 
     def self.const_name
       @const_counter ||= 0
@@ -42,7 +42,7 @@ module TensorStream
       @breakpoint = false
       @shape = TensorShape.new(shape, rank)
       @value = nil
-      @backtrace = set_backtrace(caller_locations)
+      @source = set_source(caller_locations)
       @is_const = options[:const] || false
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
@@ -141,6 +141,10 @@ module TensorStream
 
     def <(operand)
       op(:less, self, operand)
+    end
+
+    def !=(operand)
+      op(:not_equal, self, operand)
     end
 
     def <=(operand)
@@ -278,7 +282,7 @@ module TensorStream
 
     protected
 
-    def set_backtrace(trace)
+    def set_source(trace)
       trace.reject { |c| c.to_s.include?(File.join("lib","tensor_stream")) }.first
     end
 

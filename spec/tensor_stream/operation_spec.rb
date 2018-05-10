@@ -153,6 +153,24 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context ".not_equal" do
+    it "returns the truth value of two tensors" do
+      a = tf.constant(1.0)
+      b = tf.constant(1.0)
+      c = tf.constant(2.1)
+      d = tf.constant([[1.0]])
+      e = tf.constant([[1.0]])
+      f = tf.constant([[2.0]])
+      expect(tf.not_equal(a, b).eval).to eq(false)
+      expect(tf.not_equal(a, c).eval).to eq(true)
+      expect(tf.not_equal(d, e).eval).to eq([[false]])
+      expect(tf.not_equal(e, f).eval).to eq([[true]])
+
+      expect((a != b).eval).to eq(false)
+      expect((a != c).eval).to eq(true)
+    end
+  end
+
   # Outputs random values from a uniform distribution.
   # The generated values follow a uniform distribution in the range [minval, maxval). The lower bound minval is included in the range, while the upper bound maxval is excluded.
   # For floats, the default range is [0, 1). For ints, at least maxval must be specified explicitly.

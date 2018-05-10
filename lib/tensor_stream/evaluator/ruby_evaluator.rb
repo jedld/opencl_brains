@@ -108,6 +108,11 @@ module TensorStream
           b = complete_eval(b, child_context)
 
           call_vector_op(:greater, a, b, child_context, ->(t, u) { t == u })
+        when :not_equal
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+
+          call_vector_op(:not_equal, a, b, child_context, ->(t, u) { t != u })
         when :index
           f = run(a, child_context)
           index = run(b, child_context)
@@ -353,12 +358,12 @@ module TensorStream
       rescue EvaluatorExcecutionException => e
         raise e
       rescue StandardError => e
-        a = complete_eval(a, child_context)
-        b = complete_eval(b, child_context)
-        puts "name: #{tensor.given_name}"
-        puts "op: #{tensor.to_math(true, 1)}"
-        puts "A: #{a}" if a
-        puts "B: #{b}" if b
+        # a = complete_eval(a, child_context)
+        # b = complete_eval(b, child_context)
+        # puts "name: #{tensor.given_name}"
+        # puts "op: #{tensor.to_math(true, 1)}"
+        # puts "A: #{a}" if a
+        # puts "B: #{b}" if b
         # binding.pry
         puts e.backtrace.join("\n")
         raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.backtrace}"
