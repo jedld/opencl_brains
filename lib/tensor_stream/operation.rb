@@ -1,6 +1,6 @@
 module TensorStream
   class Operation < Tensor
-    attr_accessor :name, :given_name, :operation, :items, :rank, :options, :backtrace
+    attr_accessor :name, :operation, :items, :rank, :options, :backtrace
 
     def initialize(operation, a, b, options = {})
       @operation = operation
@@ -149,6 +149,10 @@ module TensorStream
         "zeros_like(#{sub_item})"
       when :where
         "where(#{auto_math(options[:pred] , name_only, max_depth - 1)},#{auto_math(items[0])},#{auto_math(items[1])})"
+      when :max
+        "max(#{auto_math(sub_item)},#{auto_math(items[1])})"
+      when :cast
+        "cast(#{auto_math(sub_item)}, #{data_type})"
       else
         fail "math form for #{operation}"
       end

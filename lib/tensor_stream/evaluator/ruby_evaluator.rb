@@ -83,6 +83,10 @@ module TensorStream
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
+        when :cast
+          a = complete_eval(a, child_context)
+
+          call_op(:cast, a, child_context, ->(t, _b) { Tensor.cast_dtype(t, tensor.data_type) })
         when :sign
           a = complete_eval(a, child_context)
 
@@ -330,11 +334,19 @@ module TensorStream
           p = complete_eval(tensor.options[:paddings], child_context)
 
           arr_pad(a, p, tensor.data_type)
+        when :max
+          a = complete_eval(a, child_context)
+          b = complete_eval(b, child_context)
+
+          call_vector_op(:max, a, b, child_context, ->(t, u) { [t, u].max })
         else
           fail "unknown op #{tensor.operation}"
         end.tap do |result|
           if tensor.breakpoint
-            tensor.breakpoint.call(complete_eval(result, child_context))
+            a = complete_eval(a, child_context)
+            b = complete_eval(b, child_context)
+
+            tensor.breakpoint.call(tensor, a, b, complete_eval(result, child_context))
           end
           @context[tensor.name] = result
         end
@@ -343,7 +355,8 @@ module TensorStream
       rescue StandardError => e
         a = complete_eval(a, child_context)
         b = complete_eval(b, child_context)
-
+        puts "name: #{tensor.given_name}"
+        puts "op: #{tensor.to_math(true, 1)}"
         puts "A: #{a}" if a
         puts "B: #{b}" if b
         # binding.pry
@@ -384,6 +397,7 @@ module TensorStream
               end
         res
       end
+
       def arr_pad(arr, paddings, data_type = :float32, rank = 0)
         fail "padding #{paddings[rank]} needs to have to elements [before, after]" if paddings[rank].size != 2
 
@@ -522,7 +536,7 @@ module TensorStream
       def process_function_op(a, child_context, op)
         # ruby scalar
         if (a.kind_of?(Tensor) && a.shape.rank > 0) || a.kind_of?(Array)
-          TensorStream.constant(constant_op(a, 0, child_context, op))
+          constant_op(a, 0, child_context, op)
         elsif !a.kind_of?(Tensor) || a.shape.rank == 0
           v = run(a, child_context)
           fail FullEvalNotPossible.new, "full eval not possible for #{v.name}" if v.is_a?(Tensor) && !v.is_const

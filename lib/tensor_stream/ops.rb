@@ -1,6 +1,7 @@
 module TensorStream
   module Ops
     FLOATING_POINT_TYPES = %w[float32 float64].map(&:to_sym)
+    NUMERIC_TYPES = %w[int32 int64 float32 float64].map(&:to_sym)
 
     def gradients(ys, xs, grad_ys: nil,
       name: 'gradients',
@@ -97,6 +98,17 @@ module TensorStream
   
     def sub(a, b, name: nil)
       op(:sub, a, b, name: name)
+    end
+
+    def max(a, b, name: nil)
+      check_allowed_types(a, NUMERIC_TYPES)
+      check_allowed_types(b, NUMERIC_TYPES)
+
+      op(:max, a, b, name: name)
+    end
+
+    def cast(input, dtype, name: nil)
+      op(:cast, input, nil, data_type: dtype, name: name)
     end
   
     def print(input, data, message: nil, name: nil)

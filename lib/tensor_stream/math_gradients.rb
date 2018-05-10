@@ -7,9 +7,11 @@ module TensorStream
       gradient_program_name = "_grad_#{tensor.name}_#{dx.name}"
       return options[:graph].get_node(gradient_program_name) if options[:graph] && options[:graph].node_added?(gradient_program_name)
 
-      constant_options = { dtype: options[:dtype] || tensor.data_type}
       target_shape = options[:target_shape]
-      return i_cons(1, constant_options) if tensor.equal?(dx)
+      constant_options = { dtype: options[:dtype] }
+      constant_options_1 = { dtype: options[:dtype] || tensor.data_type, shape: target_shape }
+
+      return i_cons(1, constant_options_1) if tensor.equal?(dx)
       return i_cons(0, constant_options) if options[:stop_gradients] && _include?(options[:stop_gradients], tensor)
 
       if tensor.is_a?(Operation)
@@ -17,6 +19,8 @@ module TensorStream
         grad2 = derivative(tensor.items[1], dx, options) if tensor.items[1]
 
         case tensor.operation
+        when :max
+          fail "wip"
         when :where
           x_mask = i_op(:where, i_op(:ones_like, tensor.items[0]), i_op(:zeros_like, tensor.items[1]), pred: tensor.options[:pred])
           y_mask = i_op(:where, i_op(:zeros_like, tensor.items[0]), i_op(:ones_like, tensor.items[1]), pred: tensor.options[:pred])
@@ -26,23 +30,23 @@ module TensorStream
         when :identity, :print, :pad
           grad
         when :negate
-          i_cons(-1, constant_options) * grad
+          i_cons(-1, constant_options_1) * grad
         when :abs
           grad * i_op(:sign, _ds(tensor.items[0]))
         when :square
-          i_cons(2, constant_options) * _ds(tensor.items[0]) * grad
+          i_cons(2, constant_options_1) * _ds(tensor.items[0]) * grad
         when :exp
           i_op(:exp, tensor.items[0]) * grad
         when :log
-          (i_cons(1, constant_options) / _ds(tensor.items[0])) * grad
+          (i_cons(1, constant_options_1) / _ds(tensor.items[0])) * grad
         when :tanh
-          (i_cons(1, constant_options) - (i_op(:tanh, _ds(tensor.items[0]))**2)) * grad
+          (i_cons(1, constant_options_1) - (i_op(:tanh, _ds(tensor.items[0]))**2)) * grad
         when :tan
-          (i_cons(1, constant_options) / (i_op(:cos, _ds(tensor.items[0]))**2)) * grad
+          (i_cons(1, constant_options_1) / (i_op(:cos, _ds(tensor.items[0]))**2)) * grad
         when :sin
           i_op(:cos, tensor.items[0]) * grad
         when :sqrt
-          i_cons(1, constant_options) / (i_cons(2, constant_options) * i_op(:sqrt, _ds(tensor.items[0]))) * grad
+          i_cons(1, constant_options_1) / (i_cons(2, constant_options_1) * i_op(:sqrt, _ds(tensor.items[0]))) * grad
         when :cos
           -op(:sin, tensor.items[0]) * grad
         when :add
@@ -99,18 +103,25 @@ module TensorStream
 
           zero_vect = i_op(:zeros, target_shape, nil, name: 'zero_vect')
 
+          # matmul_db = op(:transpose, matmul_db, nil).first
+
+          # begin_a = op(:zeros, op(:rank, matmul_db), nil, data_type: :int32, name: 'begin_a')
+          # matmul_b_shape = op(:shape, matmul_db)
+          # end_a = [matmul_b_shape[0], 1]
+
+
           norm_a = i_op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')
           norm_b = i_op(:mul, derivative_b, matmul_db, name: 'grad_b_norm_mul_db')
+
+          # norm_a = i_op(:cond, norm_a[0], norm_a, pred: i_op(:rank, matmul_da) > i_op(:rank, derivative_a))
+          # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
+
           i_op(:cond, norm_a, zero_vect, pred: i_op(:shape, norm_a) == target_shape) + i_op(:cond, norm_b, zero_vect, pred: i_op(:shape, norm_b) == target_shape)
         else
           fail "no derivative implementation found for op #{tensor.operation}"
         end
       elsif tensor.is_a?(TensorStream::Variable)
-        if tensor.equal?(dx)
-          i_op(:ones, i_op(:shape, tensor), data_type: tensor.data_type)
-        else
-          i_op(:zeros, i_op(:shape, tensor), data_type: tensor.data_type)
-        end
+        i_cons(0, constant_options)
       elsif tensor.is_a?(TensorStream::Placeholder)
         i_cons(0, constant_options)
       else

@@ -4,7 +4,7 @@ module TensorStream
   class Tensor
     include OpHelper
 
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :backtrace
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :backtrace, :given_name
 
     def self.const_name
       @const_counter ||= 0
@@ -47,6 +47,8 @@ module TensorStream
       @internal = options[:internal]
       @graph = options[:graph] || TensorStream.get_default_graph
       @name = options[:name] || build_name
+      @given_name = @name
+
       if options[:value]
         if options[:value].kind_of?(Array)
           # check if single dimenstion array is passed
@@ -237,23 +239,35 @@ module TensorStream
     end
 
     def self.cast_dtype(val, dtype)
-      return val if val.kind_of?(Tensor)
+      return val if val.is_a?(Tensor)
 
-      if val.kind_of?(Array)
+      if val.is_a?(Array)
         return val.collect do |v|
           cast_dtype(v, dtype)
         end
       end
 
-      case dtype
-      when :float32
-        val.to_f
+      case dtype.to_sym
+      when :float32, :float
+        if !!val == val
+          val ? 1.0 : 0.0
+        else
+          val.to_f
+        end
       when :string
         val.to_s
-      when :int32
-        val.to_i
-      else
+      when :int32, :int16
+        if !!val == val
+          val ? 1 : 0
+        else
+          val.to_i
+        end
+      when :boolean
+        !!val
+      when :unknown
         val
+      else
+        fail "unknown data_type #{dtype} passed"
       end
     end
 
