@@ -104,12 +104,14 @@ TensorStream.Session do |sess|
   puts "init vars"
   sess.run(init)
   puts "Testing the untrained network..."
-  loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })
+  loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
   puts sess.run(loss)
   puts "loss before training"
   (0..training_epochs).each do |epoch|
-    sess.run(optimizer, feed_dict: { X => x_train, Y => y_train })
+    sess.run(optimizer, feed_dict: { x => x_train, y => y_train })
+    loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
+    puts "loss #{loss}"
   end
-  loss = sess.run(cost, feed_dict: { X => x_train, Y => y_train })
+  loss = sess.run(cost, feed_dict: { x => x_train, y => y_train })
   puts "loss after training #{loss}"
 end

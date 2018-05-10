@@ -1,6 +1,6 @@
 module TensorStream
   class Operation < Tensor
-    attr_accessor :name, :operation, :items, :rank, :options, :backtrace
+    attr_accessor :name, :operation, :items, :rank, :options
 
     def initialize(operation, a, b, options = {})
       @operation = operation
@@ -8,7 +8,7 @@ module TensorStream
       @name = options[:name] || set_name
       @internal = options[:internal]
       @given_name = @name
-      @backtrace = set_backtrace(caller_locations)
+      @source = set_source(caller_locations)
 
       @graph = options[:graph] || TensorStream.get_default_graph
       @options = options
@@ -69,6 +69,8 @@ module TensorStream
       sub_item = auto_math(items[0], name_only, max_depth - 1)
 
       case operation
+      when :negate
+        "-#{sub_item}"
       when :index
         "#{sub_item}[#{auto_math(items[1], name_only, max_depth - 1)}]"
       when :slice
@@ -117,6 +119,8 @@ module TensorStream
         "e^#{sub_item})"
       when :ones
         "ones(#{sub_item})"
+      when :ones_like
+        "ones_like(#{sub_item})"
       when :flow_group
         "flow_group(#{items.collect { |i| auto_math(i)}.join(',')})"
       when :zeros
@@ -143,6 +147,8 @@ module TensorStream
         "pad(#{sub_item},#{auto_math(options[:paddings])})"
       when :equal
         "#{sub_item} == #{auto_math(items[1], name_only, max_depth - 1)}"
+      when :not_equal
+        "#{sub_item} != #{auto_math(items[1], name_only, max_depth - 1)}"
       when :sqrt
         "sqrt(#{sub_item})"
       when :zeros_like

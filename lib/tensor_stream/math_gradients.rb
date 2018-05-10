@@ -110,7 +110,7 @@ module TensorStream
           # norm_a = i_op(:cond, norm_a[0], norm_a, pred: i_op(:rank, matmul_da) > i_op(:rank, derivative_a))
           # norm_b = i_op(:cond, norm_b[0], norm_b, pred: i_op(:rank, matmul_db) > i_op(:rank, derivative_b))
 
-          i_op(:cond, norm_a, zero_vect, pred: i_op(:shape, norm_a) == target_shape) + i_op(:cond, norm_b, zero_vect, pred: i_op(:shape, norm_b) == target_shape)
+          i_op(:cond, norm_a, zero_vect, pred: i_op(:reduce_sum, norm_a) != 0) + i_op(:cond, norm_b, zero_vect, pred: i_op(:reduce_sum, norm_b) != 0)
         else
           fail "no derivative implementation found for op #{tensor.operation}"
         end

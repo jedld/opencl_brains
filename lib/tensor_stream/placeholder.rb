@@ -6,7 +6,7 @@ module TensorStream
       @shape = TensorShape.new(shape, rank)
       @value = nil
       @is_const = false
-      @backtrace = set_backtrace(caller_locations)
+      @source = set_source(caller_locations)
       @graph = options[:graph] || TensorStream.get_default_graph
       @name = options[:name] || build_name
       @graph.add_node(self)

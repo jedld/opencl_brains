@@ -156,9 +156,7 @@ RSpec.describe TensorStream::MathGradients do
         [-0.047, 0.994, 0.5005, -0.218, -1.5341],
         [-0.0723, 1.5287, 0.7696, -0.3353, -2.3593]])
 
-        expect(tr(biases_gradient)).to eq(
-      [ -0.75529975,  15.973999  ,   8.042299  ,  -3.5034997 ,
-        -24.6533    ])
+        expect(tr(biases_gradient)).to eq([-0.7553, 15.974, 8.0423, -3.5035, -24.6533])
       # expect(sess.last_session_context).to eq([])
      end
   end

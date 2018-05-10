@@ -116,11 +116,15 @@ module TensorStream
     end
   
     def negate(a, options = {})
-      TensorStream::Operation.new(:negate, a, nil, options)
+      op(:negate, a, nil, options)
     end
   
-    def equal(a, b, options = {})
-      TensorStream::Operation.new(:equal, a, b, options)
+    def equal(a, b, name: nil)
+      op(:equal, a, b, name: name)
+    end
+
+    def not_equal(a, b, name: nil)
+      op(:not_equal, a, b, name: name)
     end
   
     def zeros_like(tensor, dtype: nil, name: nil)
