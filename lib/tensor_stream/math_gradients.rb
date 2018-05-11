@@ -48,7 +48,7 @@ module TensorStream
         when :sqrt
           i_cons(1, constant_options_1) / (i_cons(2, constant_options_1) * i_op(:sqrt, _ds(tensor.items[0]))) * grad
         when :cos
-          -op(:sin, tensor.items[0]) * grad
+          -i_op(:sin, tensor.items[0]) * grad
         when :add
           grad_with_broadcast(tensor, dx, ->(a,b) { i_op(:add, a, b, name: 'grad_sum') } , options)
         when :sub
@@ -56,7 +56,7 @@ module TensorStream
         when :pow
           gx = _ds(tensor.items[1])*( _ds(tensor.items[0])**(_ds(tensor.items[1]) - 1)) * grad
 
-          log_x = i_op(:where, op(:log, tensor.items[0], nil, name: 'log_pow_grad'), i_op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
+          log_x = i_op(:where, i_op(:log, tensor.items[0], nil, name: 'log_pow_grad'), i_op(:zeros_like, tensor.items[0]), pred: tensor.items[0] > 0)
           gy = _ds(tensor.items[0])**_ds(tensor.items[1]) * log_x * grad2
 
           gx + gy
@@ -69,6 +69,12 @@ module TensorStream
         when :mul
           # apply the product rule
           grad * _ds(tensor.items[1]) + _ds(tensor.items[0]) * grad2
+        when :reduce_mean
+          input_size = i_op(:reduce_prod, i_op(:shape, tensor.items[0]))
+          output_size = i_op(:reduce_prod, i_op(:shape, tensor))
+          factor = input_size / output_size
+ 
+          (grad / i_op(:cast, factor, data_type: grad.dtype))
         when :reduce_sum
           grad
         when :stop_gradient
@@ -101,7 +107,7 @@ module TensorStream
           # matmul_b_shape = op(:shape, matmul_db)
           # end_a = [matmul_b_shape[0], 1]
 
-          matmul_da = op(:cond, matmul_da[0], matmul_da, pred: op(:rank, derivative_a) > 0)
+          matmul_da = i_op(:cond, matmul_da[0], matmul_da, pred: op(:rank, derivative_a) > 0)
 
           # matmul_da = op(:cond, matmul_da[0], matmul_da, pred: op(:rank, derivative_a) > 0)
           norm_a = i_op(:mul, derivative_a, matmul_da, name: 'grad_a_norm_mul_da')

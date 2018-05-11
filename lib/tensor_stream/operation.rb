@@ -101,6 +101,8 @@ module TensorStream
         end
       when :reduce_sum
         "reduce_sum(|#{sub_item}|)"
+      when :reduce_mean
+        "reduce_mean(|#{sub_item}|)"
       when :reduce_prod
         "reduce_prod(|#{sub_item}|)"
       when :gradients

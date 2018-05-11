@@ -4,7 +4,7 @@ module TensorStream
   class Tensor
     include OpHelper
 
-    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :source, :given_name
+    attr_accessor :name, :data_type, :shape, :rank, :native_buffer, :is_const, :value, :breakpoint, :internal, :source, :given_name, :graph
 
     def self.const_name
       @const_counter ||= 0
@@ -60,7 +60,7 @@ module TensorStream
             v.kind_of?(Tensor) ? Tensor.cast_dtype(v, data_type) : v
           end
         elsif shape.size > 0
-          @value = reshape(options[:value], shape.dup)
+          @value = reshape(Tensor.cast_dtype(options[:value], @data_type), shape.dup)
         else
           @value = Tensor.cast_dtype(options[:value], @data_type)
         end
@@ -70,9 +70,8 @@ module TensorStream
     end
 
     def internal?
-      @internal
+      !!@internal
     end
-
 
     def dtype
       @data_type
@@ -82,19 +81,6 @@ module TensorStream
       @const_counter = 0
       @var_counter = 0
       @placeholder_counter = 0
-    end
-
-    def self.matrix(m)
-      cols = m[0].size
-      rows = m.size
-
-      tensor = Cl::Brains::Tensor.new(:float, 2, {cols: cols, rows: rows} )
-      
-      m.flatten.each_with_index do |element, index|
-        tensor.native_buffer[index] = element
-      end
-
-      tensor
     end
 
     def build_buffer
@@ -318,7 +304,7 @@ module TensorStream
       return auto_wrap(operand.call) if operand.is_a?(Proc)
 
       if !operand.is_a?(Tensor)
-        TensorStream.constant(operand, dtype: @data_type || Tensor.detect_type(operand))
+        i_cons(operand, dtype: @data_type || Tensor.detect_type(operand))
       else
         operand
       end

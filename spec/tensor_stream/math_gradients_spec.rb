@@ -148,7 +148,10 @@ RSpec.describe TensorStream::MathGradients do
       )
 
       g = tf.gradients(neural_net, [weights, biases])
+      g2 = tf.gradients(neural_net, [weights_layer2, biases2])
+
       weight_gradient, biases_gradient = sess.run(g, feed_dict: { inputs => test_inputs })
+      weight_gradient2, biases_gradient2 = sess.run(g2, feed_dict: { inputs => test_inputs })
       
       expect(tr(weight_gradient)).to eq([
         [0.0942, -1.9924, -1.0031, 0.437, 3.075],
@@ -156,8 +159,17 @@ RSpec.describe TensorStream::MathGradients do
         [-0.047, 0.994, 0.5005, -0.218, -1.5341],
         [-0.0723, 1.5287, 0.7696, -0.3353, -2.3593]])
 
-        expect(tr(biases_gradient)).to eq([-0.7553, 15.974, 8.0423, -3.5035, -24.6533])
-      # expect(sess.last_session_context).to eq([])
+      expect(tr(biases_gradient)).to eq([-0.7553, 15.974, 8.0423, -3.5035, -24.6533])
+
+      expect(tr(weight_gradient2)).to eq([
+        [4.1451, 4.1451, 4.1451, 4.1451, 4.1451],
+        [9.4119, 9.4119, 9.4119, 9.4119, 9.4119],
+        [-11.4653, -11.4653, -11.4653, -11.4653, -11.4653],
+        [3.1677, 3.1677, 3.1677, 3.1677, 3.1677],
+        [-0.8315, -0.8315, -0.8315, -0.8315, -0.8315]
+      ])
+
+      expect(tr(biases_gradient2)).to eq([7.0, 7.0, 7.0, 7.0, 7.0])
      end
   end
 end

@@ -128,10 +128,10 @@ RSpec.describe TensorStream::Operation do
     it "converts from one datatype to another" do
       a = tf.constant([1.0, 3.0])
       b = tf.constant([true, true])
-      expect(tf.cast(a, :int32).eval).to eq([1, 3])
-      expect(tf.cast(a, :boolean).eval).to eq([true, true])
-      expect(tf.cast(b, :float32).eval). to eq([1.0, 1.0])
-      expect(tf.cast(b, :int32).eval). to eq([1, 1])
+      expect(tf.cast(a, :int32).eval).to eql([1, 3])
+      expect(tf.cast(a, :boolean).eval).to eql([true, true])
+      expect(tf.cast(b, :float32).eval).to eql([1.0, 1.0])
+      expect(tf.cast(b, :int32).eval).to eql([1, 1])
     end
   end
 
@@ -679,6 +679,22 @@ end
         [1, 1, 1, 1, 1]])
       c = a * b
       expect(c.eval).to eq([[14.0, 14.0, 14.0, 14.0, 14.0], [7.0, 7.0, 7.0, 7.0, 7.0]])
+    end
+  end
+
+  context ".reduce_mean" do
+    it "Computes the mean of elements across dimensions of a tensor" do
+      x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
+      expect(tf.reduce_mean(x).eval).to eq(1.5)
+      expect(tf.reduce_mean(x, 0).eval).to eq([1.5, 1.5])
+      expect(tf.reduce_mean(x, 1).eval).to eq([1.0, 2.0])
+    end
+
+    it ".computes for the gradient" do
+      x = tf.constant([[1.0, 1.0], [2.0, 2.0]])
+      f = tf.reduce_mean(x)
+      g = tf.gradients(f, [x])
+      expect(g.eval).to eq([[[0.25, 0.25], [0.25, 0.25]]])
     end
   end
 

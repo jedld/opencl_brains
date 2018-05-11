@@ -24,10 +24,9 @@ module TensorStream
 
       include TensorStream::OpHelper
 
-      def initialize(session, context, graph, thread_pool: nil)
+      def initialize(session, context, thread_pool: nil)
         @session = session
         @context = context
-        @graph = graph
         @retain = context[:retain] || []
         @thread_pool = thread_pool || Concurrent::ImmediateExecutor.new
       end
@@ -183,6 +182,17 @@ module TensorStream
         when :assign_sub
           tensor.items[0].value = process_vector_math_op(tensor.items[0], tensor.items[1], child_context, ->(a,b) { a - b })
           tensor.items[0].value
+        when :reduce_mean
+          c = tensor.data_type == :float ? 0.0 : 0
+          func = ->(v) { 
+            if v.kind_of?(Array)
+              v.empty? ? c : (v.reduce(:+) / v.size)
+            else
+              v
+            end
+          }
+
+          reduction(child_context, tensor, func)
         when :reduce_sum
           c = tensor.data_type == :float ? 0.0 : 0
           func = ->(v) { 
@@ -300,12 +310,12 @@ module TensorStream
             stops = tensor.options[:stop_gradients] ? tensor.options[:stop_gradients].map(&:name).join('_') : ''
             gradient_program_name = "grad_#{tensor.name}_#{xs.name}_#{stops}".to_sym
 
-            tensor_program = if @graph.node_added?(gradient_program_name)
-              @graph.get_node(gradient_program_name)
+            tensor_program = if tensor.graph.node_added?(gradient_program_name)
+              tensor.graph.get_node(gradient_program_name)
             else
-              derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: @graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
+              derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: tensor.graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
               unit_matrix = op(:ones_like, xs)
-              @graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+              tensor.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
             end
 
             Concurrent::Future.execute(executor: @thread_pool) { complete_eval(tensor_program, child_context) }
@@ -366,7 +376,7 @@ module TensorStream
         # puts "B: #{b}" if b
         # binding.pry
         puts e.backtrace.join("\n")
-        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.backtrace}"
+        raise EvaluatorExcecutionException.new(e, tensor), "error #{e.message} while evaluating #{tensor.name} : #{tensor.to_math} defined at #{tensor.source}"
       end
 
       def eval_tensor(tensor, child_context)

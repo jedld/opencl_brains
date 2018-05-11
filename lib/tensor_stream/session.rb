@@ -28,7 +28,7 @@ module TensorStream
         end
       end if options[:feed_dict]
       
-      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), TensorStream::Graph.get_default_graph, thread_pool: @thread_pool)
+      evaluator = @evaluator_class.new(self, context.merge!(retain: options[:retain]), thread_pool: @thread_pool)
 
       execution_context = {}
       result = args.collect { |e| evaluator.run(e, execution_context) }
@@ -36,12 +36,20 @@ module TensorStream
       result.size == 1 ? result.first : result
     end
 
-    def dump_internal_ops
-      graph = TensorStream::Graph.get_default_graph
-      graph.nodes.select { |k, n| n.is_a?(Tensor) && n.internal? }.collect do |k, node|
+    def dump_internal_ops(tensor)
+      dump_ops(tensor, ->(k, n) { n.is_a?(Tensor) && n.internal? } )
+    end
+
+    def dump_user_ops(tensor)
+      dump_ops(tensor, ->(k, n) { n.is_a?(Tensor) && !n.internal? } )
+    end
+
+    def dump_ops(tensor, selector)
+      graph = tensor.graph
+      graph.nodes.select { |k,v| selector.call(k, v) }.collect do |k, node|
         next unless @last_session_context[node.name]
         "#{k} #{node.to_math(true, 1)} = #{@last_session_context[node.name]}"
-      end.compact.join("\n")
+      end.compact
     end
 
     private

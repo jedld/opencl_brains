@@ -7,7 +7,7 @@ module TensorStream
       @items = items
       @name = set_name
       @ops = ops
-
+      @source = set_source(caller_locations)
       @graph = options[:graph] || TensorStream.get_default_graph
       @graph.add_node(self)
     end

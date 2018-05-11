@@ -93,6 +93,7 @@ module TensorStream
       rank = 1
       dimensions = []
       value_ptr = value
+
       begin
         dtype, rank, value_ptr, d = dtype_eval(dtype, rank, value_ptr)
         dimensions << d

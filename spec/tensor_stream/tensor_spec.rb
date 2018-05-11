@@ -35,7 +35,9 @@ RSpec.describe TensorStream::Tensor do
     context "constants" do
       it "does some type casting if dtype is specified" do
         c = TensorStream.constant(1, dtype: :float32)
-        expect(c.eval).to eq(1.0)
+        expect(c.eval).to eql(1.0)
+        c = TensorStream.constant(1, dtype: :float32, shape: [2, 2])
+        expect(c.eval).to eql([[1.0, 1.0], [1.0, 1.0]])
       end
     end
 
