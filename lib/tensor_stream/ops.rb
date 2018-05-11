@@ -3,6 +3,10 @@ module TensorStream
     FLOATING_POINT_TYPES = %w[float32 float64].map(&:to_sym)
     NUMERIC_TYPES = %w[int32 int64 float32 float64].map(&:to_sym)
 
+    def argmax(input, axis = nil, name: nil, dimension: nil, output_type: :int32)
+      op(:argmax, input, nil, axis: axis, name: name, dimension: dimension, data_type: output_type)
+    end
+
     def gradients(ys, xs, grad_ys: nil,
       name: 'gradients',
       colocate_gradients_with_ops: false,

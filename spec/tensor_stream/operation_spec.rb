@@ -207,6 +207,25 @@ RSpec.describe TensorStream::Operation do
     end
   end
 
+  context '.argmax' do
+    it 'Returns the index with the largest value across axes of a tensor. (deprecated arguments)' do
+      a = tf.constant([
+        [31, 23,  4, 24, 27, 34],
+        [18,  3, 25,  0,  6, 35],
+        [28, 14, 33, 22, 20,  8],
+        [13, 30, 21, 19,  7,  9],
+        [16,  1, 26, 32,  2, 29],
+        [17, 12,  5, 11, 10, 15]])
+
+      b = tf.constant([1,2,3,4,5,6])
+      expect(tf.argmax(a).eval).to eq([0, 3, 2, 4, 0, 1])
+      expect(tf.argmax(a, 1).eval).to eq([5, 5, 2, 1, 3, 0])
+      expect(tf.argmax(a, 0).eval).to eq([0, 3, 2, 4, 0, 1])
+      expect(tf.argmax(b, 0).eval).to eq(5)
+      expect(tf.argmax(b, 0, output_type: :float32).eval).to eql(5.0)
+    end
+  end
+
   context ".zeros" do
     it "generates a zero tensor" do
       a = tf.zeros([2,2])

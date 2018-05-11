@@ -69,6 +69,8 @@ module TensorStream
       sub_item = auto_math(items[0], name_only, max_depth - 1)
 
       case operation
+      when :argmax
+        "argmax(#{auto_math(items[0])},#{options[:axis]})"
       when :negate
         "-#{sub_item}"
       when :index

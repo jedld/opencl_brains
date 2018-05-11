@@ -82,6 +82,11 @@ module TensorStream
         b = resolve_placeholder(tensor.items[1], child_context) if tensor.items && tensor.items[1]
 
         case tensor.operation
+        when :argmax
+          a = complete_eval(a, child_context)
+          axis = tensor.options[:axis] || 0
+
+          get_max_with_axis(a, axis, 0, tensor.data_type)
         when :cast
           a = complete_eval(a, child_context)
 
@@ -395,6 +400,39 @@ module TensorStream
       end
 
       private
+
+      def get_max_with_axis(a, target_axis, current_axis, output_type)
+        if target_axis == current_axis
+          if a[0].is_a?(Array)
+            (0...a[0].size).each.collect do |column_index|
+              max = nil
+              max_index = 0
+              a.each_with_index do |row, row_index|
+                if max.nil? || row[column_index] > max
+                  max = row[column_index]
+                  max_index = row_index
+                end
+              end
+
+              Tensor.cast_dtype(max_index, output_type)
+            end
+          else
+            max = nil
+            max_index = 0
+            a.each_with_index do |a, index|
+              if (max.nil? || a > max)
+                max = a
+                max_index = index
+              end
+            end
+            Tensor.cast_dtype(max_index, output_type)
+          end
+        else
+          a.collect do |row|
+            get_max_with_axis(row, target_axis, current_axis + 1, output_type)
+          end
+        end
+      end
 
       def reduction(child_context, tensor, func)
         val = complete_eval(tensor.items[0], child_context)
