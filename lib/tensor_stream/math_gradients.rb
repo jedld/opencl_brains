@@ -120,7 +120,7 @@ module TensorStream
 
           i_op(:cond, norm_a, zero_vect, pred: i_op(:reduce_sum, norm_a) != 0) + i_op(:cond, norm_b, zero_vect, pred: i_op(:reduce_sum, norm_b) != 0)
         else
-          fail "no derivative implementation found for op #{tensor.operation}"
+          raise "no derivative implementation found for op #{tensor.operation}"
         end
       elsif tensor.is_a?(TensorStream::Variable)
         i_cons(0, constant_options)
@@ -129,9 +129,7 @@ module TensorStream
       else
         i_cons(0, constant_options)
       end.tap do |ops|
-        if options[:graph]
-          options[:graph].add_node!(gradient_program_name, ops)
-        end
+        options[:graph].add_node!(gradient_program_name, ops) if options[:graph]
       end
     end
 
@@ -145,8 +143,6 @@ module TensorStream
         tensor
       end
     end
-
-    private
 
     def self.grad_with_broadcast(tensor, dx, func, options)
       grad = derivative(tensor.items[0], dx, options)

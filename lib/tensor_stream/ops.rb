@@ -172,19 +172,19 @@ module TensorStream
     def cos(a, options = {})
       options[:data_type] ||= :float32
       check_allowed_types(a, FLOATING_POINT_TYPES)
-      TensorStream::Operation.new(:cos, a, nil, options)
+      op(:cos, a, nil, options)
     end
   
     def tan(a, options = {})
       options[:data_type] ||= :float32
       check_allowed_types(a, FLOATING_POINT_TYPES)
-      TensorStream::Operation.new(:tan, a, nil, options)
+      op(:tan, a, nil, options)
     end
   
     def tanh(a, options = {})
       options[:data_type] ||= :float32
       check_allowed_types(a, FLOATING_POINT_TYPES)
-      TensorStream::Operation.new(:tanh, a, nil, options)
+      op(:tanh, a, nil, options)
     end
   
     def sqrt(a, name: nil)
@@ -199,7 +199,7 @@ module TensorStream
     def log(input, options= {})
       options[:data_type] ||= :float32
       check_allowed_types(input, FLOATING_POINT_TYPES)
-      TensorStream::Operation.new(:log, input, nil, options)
+      op(:log, input, nil, options)
     end
   
     def exp(a, options = {})
@@ -207,17 +207,17 @@ module TensorStream
       check_allowed_types(a, FLOATING_POINT_TYPES)
       op(:exp, a, nil, options)
     end
-  
-    def matmul(input_a, input_b,  transpose_a: false,
-                      transpose_b: false,
-                      name: nil)
+
+    def matmul(input_a, input_b, transpose_a: false,
+                                 transpose_b: false,
+                                 name: nil)
       op(:matmul, input_a, input_b, transpose_a: transpose_a, transpose_b: transpose_b, name: name)
     end
-  
+
     def transpose(tensor, perm: nil, name: 'transpose')
       op(:transpose, tensor, nil, perm: perm, name: name)
     end
-  
+
     def pad(tensor, paddings, mode: 'CONSTANT', name: nil)
       op(:pad, tensor, nil, paddings: paddings, mode: mode, name: name)
     end

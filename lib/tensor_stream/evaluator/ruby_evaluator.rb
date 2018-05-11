@@ -3,14 +3,16 @@ require 'tensor_stream/math_gradients'
 
 module TensorStream
   module Evaluator
-    class FullEvalNotPossible < Exception
+    class FullEvalNotPossible < RuntimeError
     end
 
-    class EvaluatorExcecutionException < Exception
+    # Errors during graph evaluation
+    class EvaluatorExcecutionException < RuntimeError
       attr_reader :tensor
 
       def initialize(exception, tensor)
         @exception = exception
+        @tensor = tensor
       end
 
       def wrapped_exception
@@ -55,7 +57,7 @@ module TensorStream
           old_tensor = tensor
           tensor = run(tensor, context)
 
-          if tensor.is_a?(Array) && tensor.size > 0 && tensor[0].is_a?(Tensor)
+          if tensor.is_a?(Array) && !tensor.empty? && tensor[0].is_a?(Tensor)
             tensor = tensor.map { |t| complete_eval(t, context) }
           end
 
@@ -67,7 +69,7 @@ module TensorStream
       protected
 
       def eval_variable(tensor, child_context)
-        fail "variable #{tensor.name} not initalized" if tensor.value.nil?
+        raise "variable #{tensor.name} not initalized" if tensor.value.nil?
         eval_tensor(tensor.value, child_context).tap do |val|
           child_context[:returns] ||= {}
           child_context[:returns][:vars] ||= []
@@ -95,7 +97,7 @@ module TensorStream
           a = complete_eval(a, child_context)
 
           func = lambda { |x, _b|
-            if x == 0 || (x.is_a?(Float) && x.nan?)
+            if x.zero? || (x.is_a?(Float) && x.nan?)
               0
             elsif x < 0
               -1
@@ -135,7 +137,7 @@ module TensorStream
         when :sub
           call_vector_op(:sub, a, b, child_context, ->(t, u) { t - u })
         when :mul
-          call_vector_op(:mul, a, b, child_context, ->(t, u) { t * u })
+          call_vector_op(:mul, a, b, child_context, ->(t, u) { binding.pry if t.nil? || u.nil?; t * u })
         when :pow
           call_vector_op(:pow, a, b, child_context, ->(t, u) { t**u })
         when :concat
@@ -154,7 +156,7 @@ module TensorStream
         when :cos
           call_op(:cos, a, child_context, ->(t, _b) { Math.cos(t) })
         when :log
-          call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t) })
+          call_op(:log, a, child_context, ->(t, _b) { t < 0 ? Float::NAN : Math.log(t)} )
         when :exp
           call_op(:exp, a, child_context, ->(t, _b) { Math.exp(t) } )
         when :sqrt
@@ -176,7 +178,7 @@ module TensorStream
           generate_vector(tensor.options[:shape], generator: generator)
         when :flow_group
           threads = tensor.items.collect { |item| Concurrent::Future.execute(executor: @thread_pool) { run(item, child_context) } }
-          threads.collect { |t| t.value }
+          threads.collect(&:value)
         when :assign
           assign = tensor.items[0] || tensor
           assign.value = complete_eval(tensor.items[1], child_context)
@@ -189,8 +191,8 @@ module TensorStream
           tensor.items[0].value
         when :reduce_mean
           c = tensor.data_type == :float ? 0.0 : 0
-          func = ->(v) { 
-            if v.kind_of?(Array)
+          func = lambda { |v|
+            if v.is_a?(Array)
               v.empty? ? c : (v.reduce(:+) / v.size)
             else
               v
@@ -227,12 +229,12 @@ module TensorStream
           rows = complete_eval(a, child_context)
           columns = complete_eval(b, child_context)
 
-          rows.times.collect do |index|
-            columns.times.collect do |col|
+          Array.new(rows) do |i|
+            Array.new(columns) do |col|
               if tensor.data_type == :float32
-                index == col ? 1.0 : 0.0
+                i == col ? 1.0 : 0.0
               else
-                index == col ? 1 : 0
+                i == col ? 1 : 0
               end
             end
           end
@@ -262,20 +264,20 @@ module TensorStream
           call_vector_op(:greater, a, b, child_context, ->(t, u) { t > u })
         when :zeros, :ones, :zeros_like, :ones_like
 
-          shape = if [:zeros_like, :ones_like].include?(tensor.operation)
-            a = complete_eval(a, child_context)
-            shape_eval(a)
-          else
-            complete_eval(a, child_context) || tensor.shape.shape
-          end
+          shape = if %i[zeros_like ones_like].include?(tensor.operation)
+                    a = complete_eval(a, child_context)
+                    shape_eval(a)
+                  else
+                    complete_eval(a, child_context) || tensor.shape.shape
+                  end
 
-          func = if [:zeros, :zeros_like].include?(tensor.operation)
-                  ->() { tensor.data_type == :int32 ? 0 : 0.0 }
-                else
-                  ->() { tensor.data_type == :int32 ? 1 : 1.0 }
-                end
+          func = if %i[zeros zeros_like].include?(tensor.operation)
+                   -> { tensor.data_type == :int32 ? 0 : 0.0 }
+                 else
+                   -> { tensor.data_type == :int32 ? 1 : 1.0 }
+                 end
 
-          if shape.is_a?(Array) && shape.size == 0
+          if shape.is_a?(Array) && shape.size.zero?
             func.call()
           else
             shape = [shape.to_i] unless shape.is_a?(Array)
@@ -292,8 +294,8 @@ module TensorStream
           rank_a = get_rank(matrix_a)
           rank_b = get_rank(matrix_b)
 
-          fail "#{a.name} rank must be greater than 1" if rank_a < 2
-          fail "#{b.name} rank must be greater than 1" if rank_b < 2
+          raise "#{a.name} rank must be greater than 1" if rank_a < 2
+          raise "#{b.name} rank must be greater than 1" if rank_b < 2
 
           matrix_a = matrix_a.transpose if tensor.options[:transpose_a]
           matrix_b = matrix_b.transpose if tensor.options[:transpose_b]
@@ -303,11 +305,11 @@ module TensorStream
           matrix_b = matmul_const_transform(matrix_b, matrix_a, tensor)
 
           # check matrix dimensions
-          fail "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
+          raise "incompatible shape sizes for matrix multiplication (#{matrix_a[0].size} != #{matrix_b.size}) #{shape_eval(matrix_a)} vs #{shape_eval(matrix_b)}" if matrix_a[0].size != matrix_b.size
 
           (Matrix[*matrix_a] * Matrix[*matrix_b]).to_a
         when :gradients
-          compute_threads = b.collect do |xs|
+          b.collect do |xs|
             fail "#{xs} passed is not a tensor object" unless xs.is_a?(Tensor)
             xs_val = complete_eval(xs, child_context)
             target_shape = shape_eval(xs_val)
@@ -316,17 +318,15 @@ module TensorStream
             gradient_program_name = "grad_#{tensor.name}_#{xs.name}_#{stops}".to_sym
 
             tensor_program = if tensor.graph.node_added?(gradient_program_name)
-              tensor.graph.get_node(gradient_program_name)
-            else
-              derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: tensor.graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
-              unit_matrix = op(:ones_like, xs)
-              tensor.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
-            end
+                               tensor.graph.get_node(gradient_program_name)
+                             else
+                               derivative_ops = TensorStream::MathGradients.derivative(a, xs, graph: tensor.graph, stop_gradients: tensor.options[:stop_gradients], target_shape: target_shape)
+                               unit_matrix = op(:ones_like, xs)
+                               tensor.graph.add_node!(gradient_program_name, unit_matrix * derivative_ops)
+                             end
 
-            Concurrent::Future.execute(executor: @thread_pool) { complete_eval(tensor_program, child_context) }
+            complete_eval(tensor_program, child_context)
           end
-
-          compute_threads.collect { |t| t.value }
         when :identity
           complete_eval(a, child_context)
         when :print
@@ -420,7 +420,7 @@ module TensorStream
             max = nil
             max_index = 0
             a.each_with_index do |a, index|
-              if (max.nil? || a > max)
+              if max.nil? || a > max
                 max = a
                 max_index = index
               end
