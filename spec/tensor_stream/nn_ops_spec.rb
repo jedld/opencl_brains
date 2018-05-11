@@ -16,4 +16,19 @@ RSpec.describe TensorStream::NN do
       expect(tf.gradients(f, [outputs]).eval).to eq([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     end
   end
+
+  context ".relu" do
+    it "Computes rectified linear: max(features, 0)." do
+      outputs = tf.constant([-1.0, -1.1, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
+      f = tf.nn.relu(outputs)
+      expect(f.eval).to eq([0, 0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
+    end
+
+    specify "gradients" do
+      outputs = tf.constant([-1.0, -1.1, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0])
+      f = tf.nn.relu(outputs)
+      g = tf.gradients(f, [outputs])
+      expect(g.eval).to eq([[0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]])
+    end
+  end
 end
